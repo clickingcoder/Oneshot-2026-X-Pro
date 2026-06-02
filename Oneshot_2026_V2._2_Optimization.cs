@@ -1365,7 +1365,7 @@ public class OneshotFVGStrategy : Strategy
             Quantity = qty,
             OrderTypeId = OrderType.Market,
             TimeInForce = TimeInForce.IOC,
-            Comment = "OneshotFVG_" + (_isLong ? "Long" : "Short") + "_Entry"
+            Comment = "Oneshot " + (_isLong ? "Long" : "Short") + " Entry"
         });
 
         // If the broker rejects the order, roll back the in-trade state completely.
@@ -1594,7 +1594,7 @@ public class OneshotFVGStrategy : Strategy
                     Quantity = trimQty,
                     OrderTypeId = OrderType.Market,
                     TimeInForce = TimeInForce.IOC,
-                    Comment = (_isLong ? "OneshotFVG_Long" : "OneshotFVG_Short") + "_RiskTrim"
+                    Comment = (_isLong ? "Oneshot Long" : "Oneshot Short") + " RiskTrim"
                 });
 
                 if (trimResult.Status == TradingOperationResultStatus.Failure)
@@ -1629,7 +1629,7 @@ public class OneshotFVGStrategy : Strategy
             OrderTypeId = OrderType.Stop,
             TriggerPrice = sl,
             TimeInForce = TimeInForce.GTC,
-            Comment = _isLong ? "OneshotFVG_Long_SL" : "OneshotFVG_Short_SL"
+            Comment = _isLong ? "Oneshot Long SL" : "Oneshot Short SL"
         });
 
         // If SL fails to place, flatten immediately — we cannot hold an unprotected position.
@@ -1654,7 +1654,7 @@ public class OneshotFVGStrategy : Strategy
             OrderTypeId = OrderType.Limit,
             Price = tp,
             TimeInForce = TimeInForce.GTC,
-            Comment = _isLong ? "OneshotFVG_Long_TP" : "OneshotFVG_Short_TP"
+            Comment = _isLong ? "Oneshot Long TP" : "Oneshot Short TP"
         });
 
         // TP failure is non-critical (trade still has SL protection); log and continue.
@@ -1847,7 +1847,7 @@ public class OneshotFVGStrategy : Strategy
                 OrderTypeId = OrderType.Stop,
                 TriggerPrice = newStopPx,
                 TimeInForce = TimeInForce.GTC,
-                Comment = _isLong ? "OneshotFVG_Long_TrailSL" : "OneshotFVG_Short_TrailSL"
+                Comment = _isLong ? "Oneshot Long TrailSL" : "Oneshot Short TrailSL"
             });
 
             lock (_lock)
@@ -2358,7 +2358,7 @@ public class OneshotFVGStrategy : Strategy
                 Quantity = pos.Quantity,
                 OrderTypeId = OrderType.Market,
                 TimeInForce = TimeInForce.IOC,
-                Comment = "OneshotFVG_Flatten"
+                Comment = "Oneshot Flatten"
             });
         }
         // Only reset state immediately if no reverse or ghost-flatten is in progress.
@@ -2369,17 +2369,17 @@ public class OneshotFVGStrategy : Strategy
     // =========================================================================
     //  CancelOrphanOrders
     //  Cancels the tracked SL and TP orders, then sweeps ALL remaining open
-    //  orders with the "OneshotFVG" comment prefix (belt-and-suspenders cleanup).
+    //  orders with the "Oneshot" comment prefix (belt-and-suspenders cleanup).
     // -------------------------------------------------------------------------
     //  [VI] CancelOrphanOrders (HỦY LỆNH MỒ CÔI)
     //  [VI] Hủy các lệnh SL và TP đang theo dõi, rồi quét HỦY mọi lệnh còn mở
-    //       có tiền tố comment "OneshotFVG" (dọn dẹp kỹ lưỡng cho chắc).
+    //       có tiền tố comment "Oneshot" (dọn dẹp kỹ lưỡng cho chắc).
     // =========================================================================
     private void CancelOrphanOrders()
     {
         TryCancelById(_activeSLId); TryCancelById(_activeTPId);
         _activeSLId = null; _activeTPId = null;
-        foreach (var o in Core.Instance.Orders.Where(o => IsOurs(o.Symbol) && IsOurs(o.Account) && o.Comment != null && o.Comment.StartsWith("OneshotFVG")).ToList())
+        foreach (var o in Core.Instance.Orders.Where(o => IsOurs(o.Symbol) && IsOurs(o.Account) && o.Comment != null && o.Comment.StartsWith("Oneshot")).ToList())
             TryCancelById(o.Id);
     }
 
