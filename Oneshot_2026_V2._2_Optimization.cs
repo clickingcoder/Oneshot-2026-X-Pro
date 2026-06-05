@@ -823,6 +823,10 @@ public class OneshotFVGStrategy : Strategy
             UseTelegramAlerts ? "ON" : "OFF", _symbolName, _symbolId, _connectionId, FeedStaleSec), StrategyLoggingLevel.Info);
 
         PrintBanner("RUNNING");
+
+        // Telegram start-up notification.
+        // [VI] Thông báo Telegram khi khởi động.
+        SendTelegram("▶️ Trading Bot Oneshot is start to run");
     }
 
     // =========================================================================
@@ -2760,6 +2764,10 @@ public class OneshotFVGStrategy : Strategy
     // =========================================================================
     protected override void OnStop()
     {
+        // Telegram shutdown notification — sent first, before teardown begins.
+        // [VI] Thông báo Telegram khi tắt — gửi trước khi bắt đầu dọn dẹp.
+        SendTelegram("⏹️ Oneshot Trading bot is off");
+
         // Stop the polling and watchdog timers.
         // [VI] Dừng các timer polling và watchdog.
         _mainPoller?.Dispose(); _mainPoller = null;
