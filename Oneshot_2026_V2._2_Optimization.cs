@@ -2182,7 +2182,14 @@ public class OneshotFVGStrategy : Strategy
                 {
                     var resp = await _telegramHttp.GetAsync(url).ConfigureAwait(false);
                     if (!resp.IsSuccessStatusCode)
-                        Log(string.Format("[TELEGRAM] Send returned HTTP {0}.", (int)resp.StatusCode), StrategyLoggingLevel.Error);
+                    {
+                        // Telegram returns a JSON body explaining the exact reason
+                        // (e.g. "chat not found", "bot was blocked by the user").
+                        // [VI] Telegram trả về JSON nêu rõ lý do (vd: "chat not found",
+                        // [VI] "bot was blocked by the user").
+                        string body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        Log(string.Format("[TELEGRAM] Send returned HTTP {0} — {1}", (int)resp.StatusCode, body), StrategyLoggingLevel.Error);
+                    }
                 }
                 catch (Exception ex)
                 {
