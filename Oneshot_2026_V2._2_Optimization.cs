@@ -826,7 +826,7 @@ public class OneshotFVGStrategy : Strategy
 
         // Telegram start-up notification.
         // [VI] Thông báo Telegram khi khởi động.
-        SendTelegram("▶️ Trading Bot Oneshot is start to run");
+        SendTelegram("▶️ Hey guys, exciting? The Oneshot Trading Bot is now Running");
     }
 
     // =========================================================================
@@ -2773,7 +2773,7 @@ public class OneshotFVGStrategy : Strategy
     {
         // Telegram shutdown notification — sent first, before teardown begins.
         // [VI] Thông báo Telegram khi tắt — gửi trước khi bắt đầu dọn dẹp.
-        SendTelegram("⏹️ Oneshot Trading bot is off");
+        SendTelegram("⏹️ Hey Guys, Time to relax, The Oneshot Trading Bot is now OFF.");
 
         // Stop the polling and watchdog timers.
         // [VI] Dừng các timer polling và watchdog.
