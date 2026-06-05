@@ -1,6 +1,6 @@
 // =============================================================================
 //  Oneshot FVG Strategy – Quantower v1.145.16
-//  Version: Oneshot 2026 V2.2 Optimization — adds reconnect-recovery (re-resolve live symbol on disconnect, identity-based matching, fast watchdog) on top of V2.1 (late-fill race fix; reversal mode OFF=Wick / ON=Body; FVG touch accepts b0 OR b1)
+//  Version: Oneshot 2026 V2.3 Tele — adds Telegram alerts (entry Long/Short, order size, stop trigger, take-profit reached, profit/loss in $) on top of V2.2 reconnect-recovery (re-resolve live symbol on disconnect, identity-based matching, fast watchdog) and V2.1 (late-fill race fix; reversal mode OFF=Wick / ON=Body; FVG touch accepts b0 OR b1)
 //  Approach: Pure polling — no AddSymbol, no OnBar, no NewHistoryItem
 //  Trail logic ported from TradeManager v1.17 (ProcessTick / MoveStopAsync pattern)
 // -----------------------------------------------------------------------------
@@ -23,7 +23,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using TradingPlatform.BusinessLayer;
 
 public class OneshotFVGStrategy : Strategy
@@ -310,6 +312,41 @@ public class OneshotFVGStrategy : Strategy
     // [DE] Wie lange (ms) auf die Bestätigung der Stornierung des alten SL gewartet wird, bevor abgebrochen wird.
     [InputParameter("Trail Cancel Verify Timeout (ms)", 114, 50, 2000, 50, 0)]
     public int TrailCancelVerifyMs = 500;
+
+    // =========================================================================
+    //  TELEGRAM ALERT PARAMETERS
+    //  Sends a push message to a Telegram bot on entry (Long/Short + size +
+    //  stop trigger + take profit) and on close (take-profit reached / stop
+    //  triggered + realised profit or loss in dollars).
+    // -------------------------------------------------------------------------
+    //  [VI] THAM SỐ CẢNH BÁO TELEGRAM
+    //  [VI] Gửi tin nhắn tới bot Telegram khi vào lệnh (Long/Short + size +
+    //       stop trigger + take profit) và khi đóng lệnh (chạm TP / dính stop
+    //       + Lãi/Lỗ thực hiện theo đô-la).
+    // -------------------------------------------------------------------------
+    //  [DE] TELEGRAM-BENACHRICHTIGUNGSPARAMETER
+    //  [DE] Sendet bei Einstieg und Ausstieg eine Push-Nachricht an einen Telegram-Bot.
+    // =========================================================================
+
+    // Master switch: turn the Telegram alert feature ON/OFF.
+    // [VI] Công tắc tổng: BẬT/TẮT tính năng cảnh báo Telegram.
+    // [DE] Hauptschalter: Telegram-Benachrichtigungen EIN/AUS.
+    [InputParameter("— TELEGRAM ALERTS — (ON/OFF)", 115)]
+    public bool UseTelegramAlerts = false;
+
+    // Your Telegram bot token (from @BotFather), e.g. 123456789:ABCdef...
+    // [VI] Token bot Telegram của bạn (lấy từ @BotFather), vd: 123456789:ABCdef...
+    // [DE] Ihr Telegram-Bot-Token (von @BotFather).
+    [InputParameter("Telegram Bot Token", 116)]
+    public string TelegramBotToken = "";
+
+    // The chat/channel ID the bot sends messages to (get it from @userinfobot
+    // or the getUpdates API). Required in addition to the token.
+    // [VI] ID chat/kênh mà bot gửi tin tới (lấy từ @userinfobot hoặc API getUpdates).
+    // [VI] Bắt buộc phải có cùng với token.
+    // [DE] Die Chat-/Kanal-ID, an die der Bot Nachrichten sendet.
+    [InputParameter("Telegram Chat ID", 117)]
+    public string TelegramChatId = "";
 
     // =========================================================================
     //  PRIVATE BACKING FIELD FOR COMPILER SAFETY
@@ -681,8 +718,8 @@ public class OneshotFVGStrategy : Strategy
     // =========================================================================
     public OneshotFVGStrategy() : base()
     {
-        this.Name = "Oneshot 2026 V2.2 Optimization";
-        this.Description = "ICT FVG + EMA | Oneshot 2026 V2.2 Optimization (reconnect-recovery)";
+        this.Name = "Oneshot 2026 V2.3 Tele";
+        this.Description = "ICT FVG + EMA | Oneshot 2026 V2.3 Tele (Telegram alerts + reconnect-recovery)";
     }
 
     // =========================================================================
@@ -782,8 +819,8 @@ public class OneshotFVGStrategy : Strategy
         // across a simple stop/start of the strategy instance).
         // [VI] Dấu mốc build — để xác nhận trong log rằng bản fix reconnect (V2.2)
         // [VI] đã được nạp (Quantower giữ assembly cũ khi chỉ stop/start instance).
-        Log(string.Format("[BUILD] V2.2 reconnect-recovery active | symbol={0} id={1} conn={2} | feedStaleSec={3}",
-            _symbolName, _symbolId, _connectionId, FeedStaleSec), StrategyLoggingLevel.Info);
+        Log(string.Format("[BUILD] V2.3 Tele (Telegram alerts={0}) | reconnect-recovery active | symbol={1} id={2} conn={3} | feedStaleSec={4}",
+            UseTelegramAlerts ? "ON" : "OFF", _symbolName, _symbolId, _connectionId, FeedStaleSec), StrategyLoggingLevel.Info);
 
         PrintBanner("RUNNING");
     }
@@ -1671,6 +1708,20 @@ public class OneshotFVGStrategy : Strategy
         Log(string.Format("[EN]   [SL/TP PLACED] Entry:{0:F2} | SL:{1:F2} | TP:{2:F2} | SL distance:{3:F1}pts", fillPrice, sl, tp, calculatedDist), StrategyLoggingLevel.Trading);
         Log(string.Format("[VI]   [ĐẶT SL/TP THÀNH CÔNG] Vào:{0:F2} | SL:{1:F2} | TP:{2:F2} | Khoảng cách SL:{3:F1}pts", fillPrice, sl, tp, calculatedDist), StrategyLoggingLevel.Trading);
 
+        // --- Telegram entry alert (Long/Short, size, stop trigger, take profit) ---
+        // [VI] --- Cảnh báo Telegram khi vào lệnh (Long/Short, size, stop trigger, take profit) ---
+        SendTelegram(string.Format(
+            "{0} ENTRY {1}\n" +
+            "Symbol: {2}\n" +
+            "Order Size: {3} contract(s)\n" +
+            "Entry: {4:F2}\n" +
+            "Stop Trigger: {5:F2}\n" +
+            "Take Profit: {6:F2}",
+            _isLong ? "🟢" : "🔴",
+            _isLong ? "LONG" : "SHORT",
+            CurrentSymbol != null ? CurrentSymbol.Name : "?",
+            (int)qty, fillPrice, sl, tp));
+
         // If trailing stop is enabled, subscribe to tick events to begin trail monitoring.
         // [VI] Nếu trailing stop được bật, đăng ký sự kiện tick để bắt đầu theo dõi trail.
         if (UseTrailingStop)
@@ -2048,6 +2099,28 @@ public class OneshotFVGStrategy : Strategy
             // [VI] Dòng tiếng Việt.
             Log(string.Format("[VI]   [ĐÓNG LỆNH] {0} {1} | Vào:{2:F2} → Ra:{3:F2} | Lãi/Lỗ ròng: {4:F2} | Gộp: {5:F2} | {6}",
                 dir, _fillQty, _entryPrice, exitPx, netPnl, grossPnl, outcomeVi), StrategyLoggingLevel.Trading);
+
+            // --- Telegram close alert (TP reached / Stop triggered + profit or loss in $) ---
+            // Decide which exit fired by which target the exit price landed nearest to.
+            // A trailing stop that closes in profit correctly shows "Stop Triggered".
+            // [VI] --- Cảnh báo Telegram khi đóng lệnh (chạm TP / dính Stop + Lãi/Lỗ $) ---
+            // [VI] Xác định loại thoát theo việc giá ra gần mức nào hơn. Trailing stop
+            // [VI] đóng có lãi vẫn hiển thị đúng là "Stop Triggered".
+            bool tpReached = Math.Abs(exitPx - _tpPrice) <= Math.Abs(exitPx - _slPrice);
+            string exitLabel = tpReached ? "🎯 TAKE PROFIT REACHED" : "🛑 STOP TRIGGERED";
+            string pnlLabel  = netPnl >= 0
+                ? string.Format("✅ PROFIT: ${0:F2}", netPnl)
+                : string.Format("❌ LOSS: -${0:F2}", Math.Abs(netPnl));
+
+            SendTelegram(string.Format(
+                "{0}\n" +
+                "Symbol: {1}\n" +
+                "{2} {3} contract(s)\n" +
+                "Entry: {4:F2} → Exit: {5:F2}\n" +
+                "{6}",
+                exitLabel,
+                CurrentSymbol != null ? CurrentSymbol.Name : "?",
+                dir, (int)_fillQty, _entryPrice, exitPx, pnlLabel));
         }
         catch (Exception ex)
         {
@@ -2055,6 +2128,69 @@ public class OneshotFVGStrategy : Strategy
             // [VI] Không bao giờ để việc ghi log Lãi/Lỗ làm hỏng xử lý đóng lệnh.
             Log("[EN]   [P/L] Could not read the trade's profit/loss: " + ex.Message, StrategyLoggingLevel.Error);
             Log("[VI]   [P/L] Không đọc được Lãi/Lỗ của lệnh: " + ex.Message, StrategyLoggingLevel.Error);
+        }
+    }
+
+    // =========================================================================
+    //  TELEGRAM ALERTS
+    //  A shared HttpClient and a fire-and-forget sender used to push trade
+    //  notifications to a Telegram bot. The send runs on a background task so a
+    //  slow or unreachable network can never block or delay trading logic.
+    //  All sends are no-ops unless UseTelegramAlerts is ON and both the bot
+    //  token and chat ID are filled in.
+    // -------------------------------------------------------------------------
+    //  [VI] CẢNH BÁO TELEGRAM
+    //  [VI] Một HttpClient dùng chung và hàm gửi "bắn rồi quên" để đẩy thông báo
+    //       lệnh tới bot Telegram. Việc gửi chạy ở luồng nền nên mạng chậm/lỗi
+    //       không bao giờ chặn hay làm trễ logic giao dịch. Mọi lần gửi bị bỏ qua
+    //       nếu chưa BẬT UseTelegramAlerts hoặc thiếu token/Chat ID.
+    // =========================================================================
+    // One reusable HttpClient for the whole strategy lifetime (static so it is
+    // never disposed/recreated per message — the recommended HttpClient usage).
+    // [VI] Một HttpClient tái dùng cho cả vòng đời chiến lược (static để không bị
+    // [VI] hủy/tạo lại mỗi tin — cách dùng HttpClient được khuyến nghị).
+    private static readonly HttpClient _telegramHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+
+    private void SendTelegram(string message)
+    {
+        try
+        {
+            // Skip entirely when the feature is off or not configured.
+            // [VI] Bỏ qua hoàn toàn khi tính năng tắt hoặc chưa cấu hình.
+            if (!UseTelegramAlerts) return;
+            if (string.IsNullOrWhiteSpace(TelegramBotToken) || string.IsNullOrWhiteSpace(TelegramChatId))
+            {
+                Log("[TELEGRAM] Alerts are ON but Bot Token / Chat ID is empty — skipping send.", StrategyLoggingLevel.Error);
+                return;
+            }
+
+            string token  = TelegramBotToken.Trim();
+            string chatId = TelegramChatId.Trim();
+            string url = string.Format(
+                "https://api.telegram.org/bot{0}/sendMessage?chat_id={1}&text={2}",
+                token, Uri.EscapeDataString(chatId), Uri.EscapeDataString(message));
+
+            // Fire-and-forget: never await on the trading thread.
+            // [VI] Bắn rồi quên: không bao giờ chờ trên luồng giao dịch.
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var resp = await _telegramHttp.GetAsync(url).ConfigureAwait(false);
+                    if (!resp.IsSuccessStatusCode)
+                        Log(string.Format("[TELEGRAM] Send returned HTTP {0}.", (int)resp.StatusCode), StrategyLoggingLevel.Error);
+                }
+                catch (Exception ex)
+                {
+                    Log("[TELEGRAM] Send failed: " + ex.Message, StrategyLoggingLevel.Error);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            // Telegram problems must never disturb trading.
+            // [VI] Sự cố Telegram không bao giờ được làm phiền giao dịch.
+            Log("[TELEGRAM] " + ex.Message, StrategyLoggingLevel.Error);
         }
     }
 
@@ -2571,7 +2707,7 @@ public class OneshotFVGStrategy : Strategy
     private void PrintBanner(string status)
     {
         Log("╔══════════════════════════════════════════════════╗", StrategyLoggingLevel.Info);
-        Log("║    Oneshot 2026 V2.2 Optimization - QUANTOWER    ║", StrategyLoggingLevel.Info);
+        Log("║       Oneshot 2026 V2.3 Tele - QUANTOWER         ║", StrategyLoggingLevel.Info);
         Log("╚══════════════════════════════════════════════════╝", StrategyLoggingLevel.Info);
     }
 
