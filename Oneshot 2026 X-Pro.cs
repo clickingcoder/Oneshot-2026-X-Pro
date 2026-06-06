@@ -158,43 +158,6 @@ public class OneshotFVGStrategy : Strategy
     [InputParameter("Max Trades Per Minute", 85, 1, 100, 1, 0)]
     public int MaxTradesPerMinute = 10;
 
-    // When true, contract size is determined by SL distance tiers (see Tier1–4 below).
-    // When false, the fixed NumContracts value is always used.
-    // [VI] Nếu true, size contract xác định theo các bậc khoảng cách SL (Tier1–4 bên dưới).
-    // [VI] Nếu false, luôn dùng giá trị NumContracts cố định.
-    // [DE] Wenn true, wird die Kontraktgröße über SL-Abstandsstufen bestimmt (siehe Tier1–4 unten).
-    // [DE] Wenn false, wird stets der feste NumContracts-Wert verwendet.
-    [InputParameter("Dynamic Sizing (ON=SL tiers / OFF=fixed)", 90)]
-    public bool UseDynamicSizing = false;
-
-    // --- Dynamic sizing tiers (only used when UseDynamicSizing = true) ---
-    // [VI] --- Các bậc size động (chỉ dùng khi UseDynamicSizing = true) ---
-    // [DE] --- Dynamische Größenstufen (nur verwendet, wenn UseDynamicSizing = true) ---
-
-    // Contracts to trade when SL distance is between 0 and 10 points (smallest risk, most contracts).
-    // [VI] Số contract khi SL trong khoảng 0–10 điểm (rủi ro nhỏ nhất, nhiều contract nhất).
-    // [DE] Kontrakte, wenn der SL-Abstand zwischen 0 und 10 Punkten liegt (kleinstes Risiko, meiste Kontrakte).
-    [InputParameter("Tier 1 Contracts  (SL 0-10 pts)", 91, 1, 100, 1, 0)]
-    public int Tier1Contracts = 4;
-
-    // Contracts to trade when SL distance is between 10 and 20 points.
-    // [VI] Số contract khi SL trong khoảng 10–20 điểm.
-    // [DE] Kontrakte, wenn der SL-Abstand zwischen 10 und 20 Punkten liegt.
-    [InputParameter("Tier 2 Contracts  (SL 10-20 pts)", 92, 1, 100, 1, 0)]
-    public int Tier2Contracts = 3;
-
-    // Contracts to trade when SL distance is between 20 and 30 points.
-    // [VI] Số contract khi SL trong khoảng 20–30 điểm.
-    // [DE] Kontrakte, wenn der SL-Abstand zwischen 20 und 30 Punkten liegt.
-    [InputParameter("Tier 3 Contracts  (SL 20-30 pts)", 93, 1, 100, 1, 0)]
-    public int Tier3Contracts = 2;
-
-    // Contracts to trade when SL distance exceeds 30 points (largest risk, fewest contracts).
-    // [VI] Số contract khi SL vượt 30 điểm (rủi ro lớn nhất, ít contract nhất).
-    // [DE] Kontrakte, wenn der SL-Abstand 30 Punkte überschreitet (größtes Risiko, wenigste Kontrakte).
-    [InputParameter("Tier 4 Contracts  (SL >30 pts)", 94, 1, 100, 1, 0)]
-    public int Tier4Contracts = 1;
-
     // How many milliseconds to wait after an entry order before checking for the fill.
     // This gives the broker time to confirm the position before we try to place SL/TP.
     // [VI] Chờ bao nhiêu mili-giây sau khi gửi lệnh vào trước khi kiểm tra khớp.
@@ -2576,8 +2539,7 @@ public class OneshotFVGStrategy : Strategy
     //        (Symbol.FindVariableTick), so the per-tick $ value is detected
     //        automatically for futures, micros, stocks, FX, etc.
     //        Result is always floored (never round up), minimum 1.
-    //   2. UseDynamicSizing = true → select from SL-distance tiers (Tier1–4).
-    //   3. Default → return the fixed NumContracts value.
+    //   2. Default → return the fixed NumContracts value.
     // -------------------------------------------------------------------------
     //  [VI] GetContractCount (TÍNH SỐ CONTRACT)
     //  [VI] Trả về số contract sẽ giao dịch.
@@ -2589,8 +2551,7 @@ public class OneshotFVGStrategy : Strategy
     //             (Symbol.FindVariableTick), nên giá trị $/tick được nhận diện
     //             tự động cho futures, micro, cổ phiếu, FX, v.v.
     //        [VI] Kết quả luôn làm tròn XUỐNG (không bao giờ làm tròn lên), tối thiểu 1.
-    //   [VI] 2. UseDynamicSizing = true → chọn theo bậc khoảng cách SL (Tier1–4).
-    //   [VI] 3. Mặc định → trả về giá trị NumContracts cố định.
+    //   [VI] 2. Mặc định → trả về giá trị NumContracts cố định.
     // =========================================================================
     private int GetContractCount(double slDist)
     {
@@ -2649,18 +2610,8 @@ public class OneshotFVGStrategy : Strategy
             return Math.Max(1, contracts);                   // always trade at least 1  // [VI] luôn giao dịch tối thiểu 1
         }
 
-        // --- Mode 2: Dynamic SL-tier sizing ---
-        // [VI] --- Chế độ 2: Tính size theo bậc khoảng cách SL ---
-        if (UseDynamicSizing)
-        {
-            if (slDist <= 10.0) return Tier1Contracts;
-            else if (slDist <= 20.0) return Tier2Contracts;
-            else if (slDist <= 30.0) return Tier3Contracts;
-            else return Tier4Contracts;
-        }
-
-        // --- Mode 3: Fixed contracts ---
-        // [VI] --- Chế độ 3: Số contract cố định ---
+        // --- Mode 2: Fixed contracts ---
+        // [VI] --- Chế độ 2: Số contract cố định ---
         return NumContracts;
     }
 
@@ -2741,8 +2692,6 @@ public class OneshotFVGStrategy : Strategy
         string sizingMode;
         if (UseRiskAmount)
             sizingMode = string.Format("Risk ${0:F0} / trade (auto-contracts)", RiskAmountUSD);
-        else if (UseDynamicSizing)
-            sizingMode = "Dynamic (SL tiers)";
         else
             sizingMode = string.Format("Fixed {0} contracts", NumContracts);
 
