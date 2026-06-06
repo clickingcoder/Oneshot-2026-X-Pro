@@ -6,17 +6,17 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Platforms>AnyCPU</Platforms>
     <AlgoType>Strategy</AlgoType>
-    <AssemblyName>Oneshot 2026 V2.2 Optimization</AssemblyName>
-    <RootNamespace>Oneshot_2026_V2_2_Optimization</RootNamespace>
+    <AssemblyName>Oneshot 2026 X-Pro</AssemblyName>
+    <RootNamespace>Oneshot_2026_X_Pro</RootNamespace>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Quantower\TradingPlatform\v1.145.17\Console.StarterNew.exe</StartProgram>
     <StartArguments>--address 127.0.0.1 --port 61222</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>C:\Quantower\TradingPlatform\v1.145.17\..\..\Settings\Scripts\Strategies\Oneshot 2026 V2.2 Optimization</OutputPath>
+    <OutputPath>C:\Quantower\TradingPlatform\v1.145.17\..\..\Settings\Scripts\Strategies\Oneshot 2026 X-Pro</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>C:\Quantower\TradingPlatform\v1.145.17\..\..\Settings\Scripts\Strategies\Oneshot 2026 V2.2 Optimization</OutputPath>
+    <OutputPath>C:\Quantower\TradingPlatform\v1.145.17\..\..\Settings\Scripts\Strategies\Oneshot 2026 X-Pro</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="TradingPlatform.BusinessLayer">
