@@ -787,9 +787,19 @@ public class OneshotFVGStrategy : Strategy
 
         PrintBanner("RUNNING");
 
-        // Telegram start-up notification.
-        // [VI] Thông báo Telegram khi khởi động.
-        SendTelegram("🟢 The Oneshot Trading System is now active.");
+        // Telegram start-up notification (symbol, timeframe, and active sizing mode).
+        // [VI] Thông báo Telegram khi khởi động (symbol, timeframe và chế độ sizing đang dùng).
+        string startupSizing = UseRiskAmount
+            ? string.Format("Risk ${0:F0} per trade", RiskAmountUSD)
+            : string.Format("{0} Contracts per trade", NumContracts);
+        SendTelegram(string.Format(
+            "🟢 The Oneshot Trading System is now active.\n" +
+            "Symbol: {0}\n" +
+            "Timeframe: {1}\n" +
+            "Sizing: {2}",
+            CurrentSymbol != null ? CurrentSymbol.Name : "?",
+            FormatTimeframe(CurrentPeriod),
+            startupSizing));
     }
 
     // =========================================================================
@@ -2281,6 +2291,28 @@ public class OneshotFVGStrategy : Strategy
     // =========================================================================
     private bool IsOurs(Symbol s)  => s != null && _symbolId  != null && s.Id == _symbolId;
     private bool IsOurs(Account a) => a != null && _accountId != null && a.Id == _accountId;
+
+    // Formats a Period into the short Quantower-style label used in alerts, e.g.
+    // MIN5, MIN15, HOUR1, DAY1 (base-period abbreviation + multiplier).
+    // [VI] Định dạng Period thành nhãn ngắn kiểu Quantower dùng trong cảnh báo, vd:
+    // [VI] MIN5, MIN15, HOUR1, DAY1 (viết tắt base-period + bội số).
+    private static string FormatTimeframe(Period p)
+    {
+        string abbr;
+        switch (p.BasePeriod)
+        {
+            case BasePeriod.Tick:   abbr = "TICK";  break;
+            case BasePeriod.Second: abbr = "SEC";   break;
+            case BasePeriod.Minute: abbr = "MIN";   break;
+            case BasePeriod.Hour:   abbr = "HOUR";  break;
+            case BasePeriod.Day:    abbr = "DAY";   break;
+            case BasePeriod.Week:   abbr = "WEEK";  break;
+            case BasePeriod.Month:  abbr = "MONTH"; break;
+            case BasePeriod.Year:   abbr = "YEAR";  break;
+            default: abbr = p.BasePeriod.ToString().ToUpperInvariant(); break;
+        }
+        return abbr + p.PeriodMultiplier;
+    }
 
     // =========================================================================
     //  TryResolveLiveSymbol
