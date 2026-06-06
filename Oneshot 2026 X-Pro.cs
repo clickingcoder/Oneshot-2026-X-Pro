@@ -59,47 +59,98 @@ public class OneshotFVGStrategy : Strategy
     [InputParameter("Account", 1)]
     public Account CurrentAccount { get; set; }
 
-    // The chart timeframe used for FVG detection and EMA calculation.
-    // [VI] Khung thời gian dùng để phát hiện FVG và tính EMA.
-    // [DE] Der Chart-Zeitrahmen für die FVG-Erkennung und EMA-Berechnung.
-    [InputParameter("Timeframe", 2)]
-    public Period CurrentPeriod { get; set; } = Period.MIN5;
+    // =====================================================================
+    //  MULTI-TIMEFRAME SLOTS (up to 5, same symbol)
+    //  The bot scans up to five timeframes in parallel on the SAME symbol.
+    //  Each slot has its own enable switch, timeframe, EMA length, and sizing
+    //  (Risk $ or fixed contracts). A signal on any enabled timeframe opens a
+    //  trade using THAT timeframe's sizing. While a trade is open, signals from
+    //  every timeframe are ignored until the position closes — only one trade
+    //  at a time, no reversing.
+    //  [VI] ĐA KHUNG THỜI GIAN (tối đa 5, cùng symbol)
+    //  [VI] Bot quét tối đa 5 timeframe song song trên CÙNG symbol. Mỗi slot có
+    //  [VI] công tắc bật, timeframe, độ dài EMA và sizing (Risk $ hoặc contracts)
+    //  [VI] riêng. Tín hiệu ở timeframe nào → vào lệnh theo sizing của timeframe đó.
+    //  [VI] Đang có lệnh thì bỏ qua mọi tín hiệu mới cho tới khi đóng — chỉ 1 lệnh
+    //  [VI] tại một thời điểm, không đảo chiều.
+    // =====================================================================
 
-    // Number of bars used to calculate the EMA trend filter.
-    // [VI] Số nến dùng để tính đường EMA lọc xu hướng.
-    // [DE] Anzahl der Bars zur Berechnung des EMA-Trendfilters.
-    [InputParameter("EMA Trend Length", 10, 1, 1000, 1, 0)]
-    public int EmaPeriod = 200;
+    // --- Timeframe Slot 1 ---
+    [InputParameter("TF1 — Enabled", 2)]
+    public bool TF1Enabled = true;
+    [InputParameter("TF1 — Timeframe", 3)]
+    public Period TF1Period { get; set; } = Period.MIN5;
+    [InputParameter("TF1 — EMA Trend Length", 4, 1, 1000, 1, 0)]
+    public int TF1Ema = 200;
+    [InputParameter("TF1 — Use Risk Amount (ON=$ / OFF=Contracts)", 5)]
+    public bool TF1UseRisk = false;
+    [InputParameter("TF1 — Risk Amount ($)", 6, 1.0, 100000.0, 50.0, 0)]
+    public double TF1Risk = 300.0;
+    [InputParameter("TF1 — Contracts", 7, 1, 100, 1, 0)]
+    public int TF1Contracts = 2;
 
-    // How many bars back to look for a valid FVG touch (zone expiry window).
+    // --- Timeframe Slot 2 ---
+    [InputParameter("TF2 — Enabled", 8)]
+    public bool TF2Enabled = false;
+    [InputParameter("TF2 — Timeframe", 9)]
+    public Period TF2Period { get; set; } = Period.MIN15;
+    [InputParameter("TF2 — EMA Trend Length", 10, 1, 1000, 1, 0)]
+    public int TF2Ema = 200;
+    [InputParameter("TF2 — Use Risk Amount (ON=$ / OFF=Contracts)", 11)]
+    public bool TF2UseRisk = false;
+    [InputParameter("TF2 — Risk Amount ($)", 12, 1.0, 100000.0, 50.0, 0)]
+    public double TF2Risk = 300.0;
+    [InputParameter("TF2 — Contracts", 13, 1, 100, 1, 0)]
+    public int TF2Contracts = 2;
+
+    // --- Timeframe Slot 3 ---
+    [InputParameter("TF3 — Enabled", 14)]
+    public bool TF3Enabled = false;
+    [InputParameter("TF3 — Timeframe", 15)]
+    public Period TF3Period { get; set; } = Period.HOUR1;
+    [InputParameter("TF3 — EMA Trend Length", 16, 1, 1000, 1, 0)]
+    public int TF3Ema = 200;
+    [InputParameter("TF3 — Use Risk Amount (ON=$ / OFF=Contracts)", 17)]
+    public bool TF3UseRisk = false;
+    [InputParameter("TF3 — Risk Amount ($)", 18, 1.0, 100000.0, 50.0, 0)]
+    public double TF3Risk = 300.0;
+    [InputParameter("TF3 — Contracts", 19, 1, 100, 1, 0)]
+    public int TF3Contracts = 2;
+
+    // --- Timeframe Slot 4 ---
+    [InputParameter("TF4 — Enabled", 20)]
+    public bool TF4Enabled = false;
+    [InputParameter("TF4 — Timeframe", 21)]
+    public Period TF4Period { get; set; } = Period.MIN1;
+    [InputParameter("TF4 — EMA Trend Length", 22, 1, 1000, 1, 0)]
+    public int TF4Ema = 200;
+    [InputParameter("TF4 — Use Risk Amount (ON=$ / OFF=Contracts)", 23)]
+    public bool TF4UseRisk = false;
+    [InputParameter("TF4 — Risk Amount ($)", 24, 1.0, 100000.0, 50.0, 0)]
+    public double TF4Risk = 300.0;
+    [InputParameter("TF4 — Contracts", 25, 1, 100, 1, 0)]
+    public int TF4Contracts = 2;
+
+    // --- Timeframe Slot 5 ---
+    [InputParameter("TF5 — Enabled", 26)]
+    public bool TF5Enabled = false;
+    [InputParameter("TF5 — Timeframe", 27)]
+    public Period TF5Period { get; set; } = Period.MIN30;
+    [InputParameter("TF5 — EMA Trend Length", 28, 1, 1000, 1, 0)]
+    public int TF5Ema = 200;
+    [InputParameter("TF5 — Use Risk Amount (ON=$ / OFF=Contracts)", 29)]
+    public bool TF5UseRisk = false;
+    [InputParameter("TF5 — Risk Amount ($)", 30, 1.0, 100000.0, 50.0, 0)]
+    public double TF5Risk = 300.0;
+    [InputParameter("TF5 — Contracts", 31, 1, 100, 1, 0)]
+    public int TF5Contracts = 2;
+
+    // How many bars back to look for a valid FVG touch (zone expiry window). GLOBAL —
+    // shared by all timeframes.
     // [VI] Nhìn lại bao nhiêu nến để tìm chạm FVG hợp lệ (cửa sổ hết hạn của vùng).
-    // [DE] Wie viele Bars zurück nach einer gültigen FVG-Berührung gesucht wird (Ablauffenster der Zone).
-    [InputParameter("Bar Lookback Length", 20, 1, 500, 1, 0)]
+    // [VI] DÙNG CHUNG cho mọi timeframe.
+    [InputParameter("Bar Lookback Length", 36, 1, 500, 1, 0)]
     public int BarLookback = 25;
-
-    // Fixed number of contracts to trade when dynamic sizing is OFF.
-    // [VI] Số contract cố định khi TẮT chế độ tính size động.
-    // [DE] Feste Kontraktanzahl, wenn die dynamische Größenberechnung AUS ist.
-    [InputParameter("Contracts Per Trade", 30, 1, 100, 1, 0)]
-    public int NumContracts = 2;
-
-    // Sizing mode switch: false = use fixed NumContracts above; true = auto-size by dollar risk.
-    // [VI] Công tắc chế độ size: false = dùng NumContracts cố định; true = tự tính theo $ rủi ro.
-    // [DE] Größenmodus-Schalter: false = feste NumContracts oben; true = automatisch nach Dollar-Risiko.
-    [InputParameter("Use Risk Amount (ON=$Risk / OFF=Fix Contracts)", 31)]
-    public bool UseRiskAmount = false;
-
-    // Dollar amount to risk per trade when UseRiskAmount is ON.
-    // Bot will calculate: contracts = floor(RiskAmountUSD / (slPoints × pointValue)).
-    // Minimum 1 contract. Default = $300.
-    // [VI] Số tiền (USD) rủi ro mỗi lệnh khi bật UseRiskAmount.
-    // [VI] Bot tính: số contract = làm tròn xuống( RiskAmountUSD / (điểm SL × giá trị 1 điểm) ).
-    // [VI] Tối thiểu 1 contract. Mặc định $300.
-    // [DE] Dollarbetrag, der pro Trade riskiert wird, wenn UseRiskAmount AN ist.
-    // [DE] Der Bot berechnet: Kontrakte = abrunden( RiskAmountUSD / (SL-Punkte × Punktwert) ).
-    // [DE] Minimum 1 Kontrakt. Standard $300.
-    [InputParameter("Risk Amount Per Trade ($)", 32, 1.0, 100000.0, 50.0, 0)]
-    public double RiskAmountUSD = 300.0;
 
     // Risk-to-Reward ratio: TP distance = SL distance × this multiplier.
     // [VI] Tỉ lệ Lời:Lỗ — khoảng cách TP = khoảng cách SL × hệ số này.
@@ -124,12 +175,6 @@ public class OneshotFVGStrategy : Strategy
     // [DE] Fester SL-Abstand (in Punkten), wenn der Signal-SL zu weit ist und die Deckelung aktiviert ist.
     [InputParameter("Capped SL (Points)", 70, 1.0, 1000.0, 1.0, 1)]
     public double CappedSLPoints = 75.0;
-
-    // If true, the bot can flip from Long→Short or Short→Long on a new opposite signal.
-    // [VI] Nếu true, bot có thể đảo chiều Long→Short hoặc Short→Long khi gặp tín hiệu ngược.
-    // [DE] Wenn true, kann der Bot bei einem neuen Gegensignal von Long→Short oder Short→Long wechseln.
-    [InputParameter("Allow Reverse on Opposite Signal", 80)]
-    public bool AllowReverse = false;
 
     // Reversal candle confirmation style (toggle).
     //   OFF = Wick Break (original): b0 must close beyond b1's full wick (high/low).
@@ -337,18 +382,11 @@ public class OneshotFVGStrategy : Strategy
     //  [DE] PRIVATER ZUSTAND — DATEN-FEED / EMA / FEED-VERALTUNG
     //  [DE] Variablen zur Verwaltung des historischen Bar-Daten-Feeds und des EMA-Indikators.
     // =========================================================================
-    // The historical data subscription that supplies OHLC bars for signal detection.
-    // [VI] Đăng ký dữ liệu lịch sử cung cấp nến OHLC để phát hiện tín hiệu.
-    // [DE] Das Historische-Daten-Abonnement, das OHLC-Bars für die Signalerkennung liefert.
-    private HistoricalData _hdm;
-    // The EMA indicator instance attached to the historical data feed.
-    // [VI] Thực thể chỉ báo EMA gắn vào nguồn dữ liệu lịch sử.
-    // [DE] Die EMA-Indikator-Instanz, die an den Historische-Daten-Feed angehängt ist.
-    private Indicator _ema;
-    // Timestamp of the last bar we received from the feed (used for staleness detection).
-    // [VI] Mốc thời gian nến cuối nhận từ nguồn (dùng để phát hiện nguồn bị treo/cũ).
-    // [DE] Zeitstempel des letzten vom Feed empfangenen Bars (zur Erkennung von Veraltung).
-    private DateTime _lastHdmBarTime = DateTime.MinValue;
+    // [Multi-timeframe] The historical-data feed, EMA, per-feed bar tracking and FVG
+    // zone lists now live inside the Feed class (one instance per enabled timeframe).
+    // See the Feed class + _feeds list at the end of this state region.
+    // [VI] [Đa khung] Nguồn dữ liệu lịch sử, EMA, bám nến và danh sách vùng FVG giờ
+    // [VI] nằm trong class Feed (mỗi timeframe bật một instance). Xem class Feed + _feeds bên dưới.
     // How many seconds without a new bar before the watchdog considers the feed stale.
     // [VI] Bao nhiêu giây không có nến mới thì watchdog coi nguồn là cũ/treo.
     // [DE] Wie viele Sekunden ohne neuen Bar, bevor der Watchdog den Feed als veraltet einstuft.
@@ -384,10 +422,6 @@ public class OneshotFVGStrategy : Strategy
     // [VI] Timer lặp lại gọi OnPoll() mỗi PollIntervalMs mili-giây.
     // [DE] Der wiederkehrende Timer, der OnPoll() alle PollIntervalMs Millisekunden auslöst.
     private Timer _mainPoller = null;
-    // Timestamp of the last bar that has already been processed (to skip duplicates).
-    // [VI] Mốc thời gian nến đã xử lý gần nhất (để bỏ qua nến trùng).
-    // [DE] Zeitstempel des zuletzt bereits verarbeiteten Bars (um Duplikate zu überspringen).
-    private DateTime _lastProcessedBar = DateTime.MinValue;
     // Wall-clock time when we last observed a new bar (used by the watchdog heartbeat).
     // [VI] Thời gian thực khi thấy nến mới gần nhất (dùng cho nhịp tim của watchdog).
     // [DE] Echtzeit, zu der zuletzt ein neuer Bar beobachtet wurde (vom Watchdog-Herzschlag genutzt).
@@ -410,82 +444,70 @@ public class OneshotFVGStrategy : Strategy
     //  [DE] Flags und Zähler für den anfänglichen Scan historischer Bars, der die
     //       FVG-Zonenlisten füllt und den EMA vor dem Live-Handel vorbereitet.
     // =========================================================================
-    // True once the warmup scan has completed successfully and live trading can begin.
-    // [VI] True khi quét warmup xong và có thể bắt đầu giao dịch thật.
-    // [DE] True, sobald der Warmup-Scan erfolgreich abgeschlossen ist und der Live-Handel beginnen kann.
-    private bool _warmedUp = false;
-    // True once the warmup scan has been attempted (prevents running it more than once).
-    // [VI] True khi đã thử quét warmup (tránh chạy lại nhiều lần).
-    // [DE] True, sobald der Warmup-Scan versucht wurde (verhindert mehrfaches Ausführen).
-    private bool _warmupAttempted = false;
-    // Rolling bar counter incremented every time ProcessBar() is called.
-    // [VI] Bộ đếm nến, tăng mỗi lần gọi ProcessBar().
-    // [DE] Fortlaufender Bar-Zähler, der bei jedem Aufruf von ProcessBar() erhöht wird.
-    private int _barCount = 0;
-    // True if the most recent bar closed above the EMA (uptrend); false = downtrend.
-    // [VI] True nếu nến gần nhất đóng trên EMA (tăng); false = giảm.
-    // [DE] True, wenn der jüngste Bar über dem EMA geschlossen hat (Aufwärtstrend); false = Abwärtstrend.
-    private bool _isUptrend = false;
-    // Human-readable description of the last signal, shown in the strategy metrics panel.
-    // [VI] Mô tả dễ đọc của tín hiệu cuối, hiển thị ở bảng chỉ số chiến lược.
-    // [DE] Lesbare Beschreibung des letzten Signals, angezeigt im Strategie-Metrik-Panel.
+    // Human-readable description of the last signal (from any timeframe), shown in metrics.
+    // [VI] Mô tả dễ đọc của tín hiệu cuối (từ bất kỳ timeframe nào), hiển thị ở bảng chỉ số.
     private string _lastSignal = "Waiting for history...";
-    // The EMA value from the most recently processed bar (NaN until the first valid bar).
-    // [VI] Giá trị EMA của nến xử lý gần nhất (NaN cho đến khi có nến hợp lệ đầu tiên).
-    // [DE] Der EMA-Wert des zuletzt verarbeiteten Bars (NaN bis zum ersten gültigen Bar).
-    private double _lastEmaVal = double.NaN;
+    // [Multi-timeframe] Per-feed warmup flags, bar counter, trend, last EMA value are now
+    // fields on the Feed class (one per enabled timeframe). See the Feed class below.
+    // [VI] [Đa khung] Cờ warmup, bộ đếm nến, xu hướng, EMA cuối giờ là field của class Feed
+    // [VI] (mỗi timeframe bật một cái). Xem class Feed bên dưới.
 
     // =========================================================================
-    //  PRIVATE STATE — FVG ZONES
-    //  Parallel lists that store all currently active Fair-Value Gap zones.
-    //  Each zone is identified by its top price, bottom price, and the bar
-    //  number on which it was formed.
+    //  PRIVATE STATE — TIMEFRAME FEEDS (multi-timeframe)
+    //  Each enabled timeframe slot becomes one Feed instance holding its own
+    //  historical-data subscription, EMA, warmup state, bar tracking and FVG
+    //  zone lists. All feeds run on the SAME symbol; signals from any feed open
+    //  a single shared position.
     // -------------------------------------------------------------------------
-    //  [VI] TRẠNG THÁI NỘI BỘ — CÁC VÙNG FVG
-    //  [VI] Các danh sách song song lưu mọi vùng Fair-Value Gap đang hoạt động.
-    //  [VI] Mỗi vùng được nhận diện bằng giá đỉnh, giá đáy và số thứ tự nến tạo ra nó.
-    // -------------------------------------------------------------------------
-    //  [DE] PRIVATER ZUSTAND — FVG-ZONEN
-    //  [DE] Parallele Listen, die alle aktuell aktiven Fair-Value-Gap-Zonen speichern.
-    //  [DE] Jede Zone wird durch ihren oberen Preis, unteren Preis und die Bar-Nummer
-    //       ihrer Entstehung identifiziert.
+    //  [VI] TRẠNG THÁI NỘI BỘ — CÁC FEED TIMEFRAME (đa khung)
+    //  [VI] Mỗi slot timeframe bật → một Feed, giữ nguồn dữ liệu, EMA, trạng thái
+    //  [VI] warmup, bám nến và danh sách vùng FVG riêng. Mọi feed chạy CÙNG symbol;
+    //  [VI] tín hiệu từ feed nào cũng mở chung một vị thế duy nhất.
     // =========================================================================
-    // Bullish FVG zone top prices (lower edge of the gap candle's low).
-    // [VI] Giá đỉnh vùng FVG tăng.
-    // [DE] Obere Preise der bullischen FVG-Zonen (untere Kante des Tiefs der Gap-Kerze).
-    private readonly List<double> _bullTop = new List<double>();
-    // Bullish FVG zone bottom prices (upper edge of the two-bars-ago candle's high).
-    // [VI] Giá đáy vùng FVG tăng.
-    // [DE] Untere Preise der bullischen FVG-Zonen (obere Kante des Hochs der Kerze von vor zwei Bars).
-    private readonly List<double> _bullBtm = new List<double>();
-    // Bar numbers on which each bullish FVG was created (used for expiry).
-    // [VI] Số thứ tự nến tạo ra mỗi FVG tăng (dùng cho hết hạn).
-    // [DE] Bar-Nummern, an denen jede bullische FVG entstand (für den Ablauf genutzt).
-    private readonly List<int> _bullBar = new List<int>();
-    // Bearish FVG zone top prices (lower edge of the two-bars-ago candle's low).
-    // [VI] Giá đỉnh vùng FVG giảm.
-    // [DE] Obere Preise der bärischen FVG-Zonen (untere Kante des Tiefs der Kerze von vor zwei Bars).
-    private readonly List<double> _bearTop = new List<double>();
-    // Bearish FVG zone bottom prices (upper edge of the gap candle's high).
-    // [VI] Giá đáy vùng FVG giảm.
-    // [DE] Untere Preise der bärischen FVG-Zonen (obere Kante des Hochs der Gap-Kerze).
-    private readonly List<double> _bearBtm = new List<double>();
-    // Bar numbers on which each bearish FVG was created (used for expiry).
-    // [VI] Số thứ tự nến tạo ra mỗi FVG giảm (dùng cho hết hạn).
-    // [DE] Bar-Nummern, an denen jede bärische FVG entstand (für den Ablauf genutzt).
-    private readonly List<int> _bearBar = new List<int>();
+    private sealed class Feed
+    {
+        // --- Per-slot config (snapshot of the InputParameters at OnRun) ---
+        public int Slot;
+        public Period Period;
+        public int EmaPeriod;
+        public bool UseRiskAmount;
+        public double RiskAmountUSD;
+        public int NumContracts;
+        public string Label = "?";   // e.g. "MIN5" (FormatTimeframe)
 
-    // --- Retrace-into-FVG observation (early "watch" logging) ---
-    // [VI] --- Theo dõi giá retrace về vùng FVG (log cảnh báo sớm để quan sát) ---
-    // [DE] --- Retrace-in-FVG-Beobachtung (frühe "Watch"-Protokollierung) ---
-    // Bar number of the last Bull FVG zone we already logged a retrace for (anti-spam dedup).
-    // [VI] Số nến của vùng Bull FVG gần nhất ĐÃ ghi log retrace (chống lặp/spam).
-    // [DE] Bar-Nummer der zuletzt für einen Retrace protokollierten Bull-FVG-Zone (Anti-Spam).
-    private int _lastRetraceBullZone = -1;
-    // Bar number of the last Bear FVG zone we already logged a retrace for (anti-spam dedup).
-    // [VI] Số nến của vùng Bear FVG gần nhất ĐÃ ghi log retrace (chống lặp/spam).
-    // [DE] Bar-Nummer der zuletzt für einen Retrace protokollierten Bear-FVG-Zone (Anti-Spam).
-    private int _lastRetraceBearZone = -1;
+        // --- Live feed + indicator ---
+        public HistoricalData Hdm;
+        public Indicator Ema;
+
+        // --- Warmup / bar tracking ---
+        public bool WarmedUp;
+        public bool WarmupAttempted;
+        public int BarCount;
+        public bool IsUptrend;
+        public double LastEmaVal = double.NaN;
+        public DateTime LastProcessedBar = DateTime.MinValue;  // skip already-processed bars
+        public DateTime LastHdmBarTime = DateTime.MinValue;    // feed-staleness detection
+
+        // --- FVG zones (parallel lists, same meaning as the old single-feed lists) ---
+        public readonly List<double> BullTop = new List<double>();
+        public readonly List<double> BullBtm = new List<double>();
+        public readonly List<int>    BullBar = new List<int>();
+        public readonly List<double> BearTop = new List<double>();
+        public readonly List<double> BearBtm = new List<double>();
+        public readonly List<int>    BearBar = new List<int>();
+        public int LastRetraceBullZone = -1;
+        public int LastRetraceBearZone = -1;
+    }
+
+    // All enabled timeframe feeds, built in OnRun.
+    // [VI] Tất cả feed timeframe đang bật, dựng trong OnRun.
+    private readonly List<Feed> _feeds = new List<Feed>();
+
+    // The feed that produced the current open trade (null when flat). Used so the
+    // post-fill risk-trim and sizing read the entering timeframe's config.
+    // [VI] Feed đã tạo lệnh đang mở (null khi flat). Dùng để phần cắt rủi ro sau khớp
+    // [VI] và sizing đọc đúng cấu hình của timeframe đã vào lệnh.
+    private Feed _activeFeed = null;
 
     // =========================================================================
     //  PRIVATE STATE — TRADE / ORDER MANAGEMENT
@@ -605,28 +627,12 @@ public class OneshotFVGStrategy : Strategy
     // [DE] (zur Durchsetzung der MaxTradesPerMinute-Begrenzung).
     private readonly Queue<DateTime> _tradeTimestamps = new Queue<DateTime>();
 
-    // --- Reverse trade pending state ---
-    // [VI] --- Trạng thái chờ của lệnh đảo chiều ---
-    // True when the bot has decided to flip direction and is waiting for the
-    // current position to close before placing the new opposite entry.
-    // [VI] True khi bot quyết định đảo chiều và đang chờ vị thế hiện tại đóng
-    // [VI] trước khi đặt lệnh ngược mới.
+    // Reverse-on-opposite-signal was removed (multi-timeframe: while in a trade all new
+    // signals are ignored). _pendingReverse is kept as an always-false guard so existing
+    // exit-handling conditions stay valid without further edits.
+    // [VI] Đã gỡ đảo chiều (đa khung: đang có lệnh thì bỏ qua mọi tín hiệu mới). Giữ
+    // [VI] _pendingReverse như một cờ luôn-false để các điều kiện xử lý thoát lệnh vẫn đúng.
     private bool _pendingReverse = false;
-    // Direction of the pending reverse entry.
-    // [VI] Hướng của lệnh đảo chiều đang chờ.
-    private bool _reverseIsLong = false;
-    // SL price pre-calculated for the reverse entry.
-    // [VI] Giá SL tính sẵn cho lệnh đảo chiều.
-    private double _reverseSLPrice = 0;
-    // TP price pre-calculated for the reverse entry.
-    // [VI] Giá TP tính sẵn cho lệnh đảo chiều.
-    private double _reverseTPPrice = 0;
-    // SL distance (points) for the reverse entry (used for dynamic sizing).
-    // [VI] Khoảng cách SL (điểm) cho lệnh đảo chiều (dùng cho tính size động).
-    private double _reverseSLDist = 0;
-    // Number of contracts for the reverse entry.
-    // [VI] Số contract cho lệnh đảo chiều.
-    private int _reverseContracts = 0;
 
     // =========================================================================
     //  PRIVATE STATE — TRAILING STOP
@@ -740,21 +746,15 @@ public class OneshotFVGStrategy : Strategy
         // [VI] Chụp lại hệ số TP để việc sửa UI giữa chừng không ảnh hưởng lệnh đang mở.
         tpMultiplierInternal = this.TpMultiplier;
 
-        // Request enough history that EMA(EmaPeriod) is fully "warmed up" at the trading
-        // edge (≈6× the EMA length, min 500), so the bot's EMA matches the chart's EMA.
-        // A short 500-bar load leaves a long EMA under-converged, which can flip the
-        // c0 > EMA trend filter near the line and disagree with the indicator.
-        // [VI] Yêu cầu đủ lịch sử để EMA(EmaPeriod) "ấm" hẳn ở mép giao dịch (≈6× độ dài EMA,
-        // [VI] tối thiểu 500), để EMA của bot khớp EMA trên chart. Chỉ nạp 500 nến khiến EMA
-        // [VI] dài chưa hội tụ → bộ lọc c0 > EMA có thể lệch với indicator khi giá sát đường.
-        _hdm = CurrentSymbol.GetHistory(CurrentPeriod, HistoryType.Last, Math.Max(500, EmaPeriod * 6));
-
-        // Build the EMA indicator and attach it to the historical data feed so
-        // it is recalculated automatically whenever new bars arrive.
-        // [VI] Tạo chỉ báo EMA và gắn vào nguồn dữ liệu lịch sử để nó tự động
-        // [VI] tính lại mỗi khi có nến mới.
-        _ema = Core.Indicators.BuiltIn.EMA(EmaPeriod, PriceType.Close);
-        _hdm.AddIndicator(_ema);
+        // Build one Feed (history + EMA) per enabled timeframe slot. Aborts if none.
+        // [VI] Dựng một Feed (lịch sử + EMA) cho mỗi slot timeframe đang bật. Dừng nếu không có.
+        BuildFeeds();
+        if (_feeds.Count == 0)
+        {
+            Log("[EN] No timeframe slot is enabled (TF1..TF5) — aborting.", StrategyLoggingLevel.Error);
+            Log("[VI] Không có slot timeframe nào được bật (TF1..TF5) — dừng lại.", StrategyLoggingLevel.Error);
+            Stop(); return;
+        }
 
         // Subscribe to platform-wide events for positions and orders.
         // [VI] Đăng ký các sự kiện toàn nền tảng cho vị thế và lệnh.
@@ -772,10 +772,10 @@ public class OneshotFVGStrategy : Strategy
         // [VI] Khởi động timer watchdog (chạy mỗi 30 giây).
         _watchdogTimer = new Timer(_ => OnWatchdog(), null, WatchdogIntervalMs, WatchdogIntervalMs);
 
-        Log(string.Format("[EN] Strategy started — polling every {0}ms | EMA:{1} | Lookback:{2} | UTC Offset:{3:+#;-#;0}h",
-            PollIntervalMs, EmaPeriod, BarLookback, SessionUTCOffset), StrategyLoggingLevel.Info);
-        Log(string.Format("[VI] Đã khởi động chiến lược — hỏi vòng mỗi {0}ms | EMA:{1} | Nhìn lại:{2} nến | Lệch UTC:{3:+#;-#;0}h",
-            PollIntervalMs, EmaPeriod, BarLookback, SessionUTCOffset), StrategyLoggingLevel.Info);
+        Log(string.Format("[EN] Strategy started — polling every {0}ms | Timeframes: {1} | Lookback:{2} | UTC Offset:{3:+#;-#;0}h",
+            PollIntervalMs, FeedsSummary(), BarLookback, SessionUTCOffset), StrategyLoggingLevel.Info);
+        Log(string.Format("[VI] Đã khởi động chiến lược — hỏi vòng mỗi {0}ms | Khung: {1} | Nhìn lại:{2} nến | Lệch UTC:{3:+#;-#;0}h",
+            PollIntervalMs, FeedsSummary(), BarLookback, SessionUTCOffset), StrategyLoggingLevel.Info);
 
         // Build marker — lets us confirm in the log that the reconnect-recovery
         // build (V2.2) is actually loaded (Quantower caches the old assembly
@@ -787,19 +787,78 @@ public class OneshotFVGStrategy : Strategy
 
         PrintBanner("RUNNING");
 
-        // Telegram start-up notification (symbol, timeframe, and active sizing mode).
-        // [VI] Thông báo Telegram khi khởi động (symbol, timeframe và chế độ sizing đang dùng).
-        string startupSizing = UseRiskAmount
-            ? string.Format("Risk ${0:F0} per trade", RiskAmountUSD)
-            : string.Format("{0} Contracts per trade", NumContracts);
+        // Telegram start-up notification (symbol + each enabled timeframe & its sizing).
+        // [VI] Thông báo Telegram khi khởi động (symbol + từng timeframe đang bật & sizing).
+        var tfLines = new System.Text.StringBuilder();
+        foreach (var f in _feeds)
+            tfLines.AppendFormat("• {0}: EMA {1} | {2}\n", f.Label, f.EmaPeriod,
+                f.UseRiskAmount ? string.Format("Risk ${0:F0} per trade", f.RiskAmountUSD)
+                                : string.Format("{0} Contracts per trade", f.NumContracts));
         SendTelegram(string.Format(
             "🟢 The Oneshot Trading System is now active.\n" +
             "Symbol: {0}\n" +
-            "Timeframe: {1}\n" +
-            "Sizing: {2}",
+            "Timeframes ({1}):\n{2}",
             CurrentSymbol != null ? CurrentSymbol.Name : "?",
-            FormatTimeframe(CurrentPeriod),
-            startupSizing));
+            _feeds.Count, tfLines.ToString().TrimEnd()));
+    }
+
+    // =========================================================================
+    //  BuildFeeds / FeedsSummary
+    //  BuildFeeds() reads the five TF slots and creates one Feed (history + EMA)
+    //  per enabled slot on the current symbol. FeedsSummary() builds a short
+    //  one-line description of the active feeds for logging.
+    // -------------------------------------------------------------------------
+    //  [VI] BuildFeeds() đọc 5 slot TF và tạo một Feed (lịch sử + EMA) cho mỗi slot
+    //  [VI] đang bật trên symbol hiện tại. FeedsSummary() tạo mô tả ngắn 1 dòng để log.
+    // =========================================================================
+    private void BuildFeeds()
+    {
+        _feeds.Clear();
+        AddFeedIfEnabled(1, TF1Enabled, TF1Period, TF1Ema, TF1UseRisk, TF1Risk, TF1Contracts);
+        AddFeedIfEnabled(2, TF2Enabled, TF2Period, TF2Ema, TF2UseRisk, TF2Risk, TF2Contracts);
+        AddFeedIfEnabled(3, TF3Enabled, TF3Period, TF3Ema, TF3UseRisk, TF3Risk, TF3Contracts);
+        AddFeedIfEnabled(4, TF4Enabled, TF4Period, TF4Ema, TF4UseRisk, TF4Risk, TF4Contracts);
+        AddFeedIfEnabled(5, TF5Enabled, TF5Period, TF5Ema, TF5UseRisk, TF5Risk, TF5Contracts);
+    }
+
+    private void AddFeedIfEnabled(int slot, bool enabled, Period period, int ema,
+                                  bool useRisk, double risk, int contracts)
+    {
+        if (!enabled) return;
+        var f = new Feed
+        {
+            Slot = slot,
+            Period = period,
+            EmaPeriod = Math.Max(1, ema),
+            UseRiskAmount = useRisk,
+            RiskAmountUSD = risk,
+            NumContracts = Math.Max(1, contracts),
+            Label = FormatTimeframe(period),
+        };
+        OpenFeed(f);
+        _feeds.Add(f);
+    }
+
+    // Creates (or recreates) the historical-data feed + EMA for one Feed.
+    // [VI] Tạo (hoặc tạo lại) nguồn dữ liệu lịch sử + EMA cho một Feed.
+    private void OpenFeed(Feed f)
+    {
+        f.Hdm = CurrentSymbol.GetHistory(f.Period, HistoryType.Last, Math.Max(500, f.EmaPeriod * 6));
+        f.Ema = Core.Indicators.BuiltIn.EMA(f.EmaPeriod, PriceType.Close);
+        f.Hdm.AddIndicator(f.Ema);
+    }
+
+    private string FeedsSummary()
+    {
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < _feeds.Count; i++)
+        {
+            var f = _feeds[i];
+            if (i > 0) sb.Append(", ");
+            sb.AppendFormat("{0}(EMA{1},{2})", f.Label, f.EmaPeriod,
+                f.UseRiskAmount ? string.Format("${0:F0}", f.RiskAmountUSD) : string.Format("{0}c", f.NumContracts));
+        }
+        return sb.ToString();
     }
 
     // =========================================================================
@@ -818,15 +877,27 @@ public class OneshotFVGStrategy : Strategy
     // =========================================================================
     private void OnPoll()
     {
-        if (_hdm == null) return;
-        int count = _hdm.Count;
+        // Poll every enabled timeframe feed independently. Each builds its own FVG
+        // zones / EMA and may fire a signal; the shared trade guard in ProcessBar
+        // ensures only one position is open at a time.
+        // [VI] Quét từng feed timeframe đang bật độc lập. Mỗi feed tự dựng vùng FVG/EMA
+        // [VI] và có thể ra tín hiệu; chốt chặn lệnh dùng chung trong ProcessBar bảo đảm
+        // [VI] chỉ một vị thế mở tại một thời điểm.
+        for (int i = 0; i < _feeds.Count; i++)
+            PollFeed(_feeds[i]);
+    }
+
+    private void PollFeed(Feed f)
+    {
+        if (f.Hdm == null) return;
+        int count = f.Hdm.Count;
         // We need at least EmaPeriod + 5 bars before the EMA is reliable.
         // [VI] Cần ít nhất EmaPeriod + 5 nến để EMA đáng tin cậy.
-        int needed = EmaPeriod + 5;
+        int needed = f.EmaPeriod + 5;
 
         // --- Phase 1: Warmup ---
         // [VI] --- Pha 1: Warmup ---
-        if (!_warmedUp)
+        if (!f.WarmedUp)
         {
             // Not enough bars yet — log progress every 10 seconds and wait.
             // [VI] Chưa đủ nến — ghi tiến độ mỗi 10 giây và chờ.
@@ -835,138 +906,104 @@ public class OneshotFVGStrategy : Strategy
                 int elapsed = (int)(DateTime.UtcNow.Second);
                 if (elapsed % 10 == 0)
                 {
-                    Log(string.Format("[EN]   [POLL] Loading history... {0}/{1} bars (waiting for broker to sync prior-session bars)", count, needed), StrategyLoggingLevel.Info);
-                    Log(string.Format("[VI]   [POLL] Đang nạp lịch sử... {0}/{1} nến (chờ sàn đồng bộ nến phiên cũ)", count, needed), StrategyLoggingLevel.Info);
+                    Log(string.Format("[EN]   [POLL {0}] Loading history... {1}/{2} bars", f.Label, count, needed), StrategyLoggingLevel.Info);
+                    Log(string.Format("[VI]   [POLL {0}] Đang nạp lịch sử... {1}/{2} nến", f.Label, count, needed), StrategyLoggingLevel.Info);
                 }
                 return;
             }
 
             // Prevent running the warmup scan more than once.
             // [VI] Ngăn quét warmup chạy quá một lần.
-            if (_warmupAttempted) return;
-            _warmupAttempted = true;
+            if (f.WarmupAttempted) return;
+            f.WarmupAttempted = true;
 
-            Log(string.Format("[EN]   [POLL] {0} bars ready — running warmup scan...", count), StrategyLoggingLevel.Info);
-            Log(string.Format("[VI]   [POLL] Đã đủ {0} nến — đang chạy quét warmup...", count), StrategyLoggingLevel.Info);
+            Log(string.Format("[EN]   [POLL {0}] {1} bars ready — running warmup scan...", f.Label, count), StrategyLoggingLevel.Info);
+            Log(string.Format("[VI]   [POLL {0}] Đã đủ {1} nến — đang chạy quét warmup...", f.Label, count), StrategyLoggingLevel.Info);
 
             // Clear any stale zone data before the full historical scan.
             // [VI] Xóa dữ liệu vùng cũ trước khi quét toàn bộ lịch sử.
-            _bullTop.Clear(); _bullBtm.Clear(); _bullBar.Clear();
-            _bearTop.Clear(); _bearBtm.Clear(); _bearBar.Clear();
-            _barCount = 0;
+            f.BullTop.Clear(); f.BullBtm.Clear(); f.BullBar.Clear();
+            f.BearTop.Clear(); f.BearBtm.Clear(); f.BearBar.Clear();
+            f.BarCount = 0;
 
-            // Scan bars from oldest to newest (index count-1 down to 2).
-            // executeTrades=false means FVG zones are built but no orders are placed.
-            // [VI] Quét nến từ cũ đến mới (chỉ số count-1 xuống 2).
-            // [VI] executeTrades=false nghĩa là chỉ dựng vùng FVG, không đặt lệnh.
+            // Scan bars from oldest to newest (index count-1 down to 2). Zones only.
+            // [VI] Quét nến từ cũ đến mới (chỉ số count-1 xuống 2). Chỉ dựng vùng.
             for (int i = count - 1; i >= 2; i--)
-                ProcessBar(i, executeTrades: false);
+                ProcessBar(f, i, executeTrades: false);
 
             // If the EMA is still NaN the indicator hasn't calculated yet — retry next poll.
             // [VI] Nếu EMA vẫn NaN tức chỉ báo chưa tính xong — thử lại ở lần poll sau.
-            if (double.IsNaN(_lastEmaVal))
+            if (double.IsNaN(f.LastEmaVal))
             {
-                Log("[EN] [POLL] EMA still NaN after warmup — retrying next poll.", StrategyLoggingLevel.Error);
-                Log("[VI] [POLL] EMA vẫn NaN sau warmup — sẽ thử lại ở lần hỏi vòng kế tiếp.", StrategyLoggingLevel.Error);
-                _warmupAttempted = false;
+                Log(string.Format("[EN] [POLL {0}] EMA still NaN after warmup — retrying next poll.", f.Label), StrategyLoggingLevel.Error);
+                Log(string.Format("[VI] [POLL {0}] EMA vẫn NaN sau warmup — sẽ thử lại lần sau.", f.Label), StrategyLoggingLevel.Error);
+                f.WarmupAttempted = false;
                 return;
             }
 
-            _warmedUp = true;
-            Log(string.Format("[EN] ✅ [POLL] Warmup successful — EMA({0}): {1:F2} | Bull FVG:{2} | Bear FVG:{3}",
-                EmaPeriod, _lastEmaVal, _bullTop.Count, _bearTop.Count), StrategyLoggingLevel.Info);
-            Log(string.Format("[VI] ✅ [POLL] Warmup thành công — EMA({0}): {1:F2} | FVG tăng:{2} | FVG giảm:{3}",
-                EmaPeriod, _lastEmaVal, _bullTop.Count, _bearTop.Count), StrategyLoggingLevel.Info);
+            f.WarmedUp = true;
+            Log(string.Format("[EN] ✅ [POLL {0}] Warmup OK — EMA({1}): {2:F2} | Bull FVG:{3} | Bear FVG:{4}",
+                f.Label, f.EmaPeriod, f.LastEmaVal, f.BullTop.Count, f.BearTop.Count), StrategyLoggingLevel.Info);
+            Log(string.Format("[VI] ✅ [POLL {0}] Warmup xong — EMA({1}): {2:F2} | FVG tăng:{3} | FVG giảm:{4}",
+                f.Label, f.EmaPeriod, f.LastEmaVal, f.BullTop.Count, f.BearTop.Count), StrategyLoggingLevel.Info);
 
-            // Seed _lastProcessedBar so the very next poll doesn't re-process bar [1].
-            // [VI] Gán mồi _lastProcessedBar để lần poll kế tiếp không xử lý lại nến [1].
-            var seed = _hdm[1] as HistoryItemBar;
-            if (seed != null) _lastProcessedBar = seed.TimeLeft;
+            // Seed LastProcessedBar so the very next poll doesn't re-process bar [1].
+            // [VI] Gán mồi LastProcessedBar để lần poll kế tiếp không xử lý lại nến [1].
+            var seed = f.Hdm[1] as HistoryItemBar;
+            if (seed != null) f.LastProcessedBar = seed.TimeLeft;
             return;
         }
 
         // --- Phase 2: Live bar detection — process EVERY newly-closed bar, never skip ---
-        // PREVIOUS BUG: only _hdm[1] (the single latest closed bar) was processed each
-        // poll. Whenever the feed advanced by more than one bar between polls — startup
-        // catch-up, a data burst, a reconnect, or replay/fast mode — the intermediate
-        // bars were skipped entirely: their FVG zones were never built and their signals
-        // never evaluated. That left the zone lists permanently incomplete (e.g. Bear:0),
-        // so later retraces found no zone and produced "No Signal", and real entries were
-        // missed. We now replay EVERY unprocessed closed bar in chronological order so no
-        // FVG zone is ever lost. Only the most recent bar may place an order; older
-        // catch-up bars rebuild zones only (executeTrades=false) to avoid entering late
-        // on a bar that already closed minutes ago.
-        // [VI] --- Pha 2: Phát hiện nến — xử lý MỌI nến vừa đóng, KHÔNG bỏ sót ---
-        // [VI] LỖI TRƯỚC ĐÂY: mỗi vòng poll chỉ xử lý _hdm[1] (đúng 1 nến đóng gần nhất).
-        // [VI] Khi nguồn nhảy hơn 1 nến giữa 2 lần poll (bù lúc khởi động, nạp dồn, kết nối
-        // [VI] lại, hay chế độ replay) thì các nến ở giữa bị BỎ HẲN: không dựng vùng FVG,
-        // [VI] không xét tín hiệu. Khiến danh sách vùng thiếu vĩnh viễn (vd Bear:0), nên về
-        // [VI] sau giá retrace lại không thấy vùng → "No Signal", và bỏ lỡ lệnh thật. Giờ ta
-        // [VI] replay MỌI nến chưa xử lý theo đúng thứ tự thời gian để không mất vùng FVG nào.
-        // [VI] Chỉ nến mới nhất được đặt lệnh; nến bù chỉ dựng vùng (executeTrades=false) để
-        // [VI] không vào lệnh trễ trên nến đã đóng từ mấy phút trước.
+        // Replay EVERY unprocessed closed bar in chronological order so no FVG zone is
+        // ever lost. LIVE (ReplayMode OFF) → only the newest bar may enter; older
+        // catch-up bars rebuild zones only (executeTrades=false). REPLAY (ON) → every bar
+        // may enter, matching the indicator which marks every signal.
+        // [VI] --- Pha 2: Xử lý MỌI nến vừa đóng, KHÔNG bỏ sót ---
+        // [VI] Replay mọi nến chưa xử lý theo thứ tự thời gian để không mất vùng FVG. THẬT
+        // [VI] (Replay TẮT) → chỉ nến mới nhất được vào; nến bù chỉ dựng vùng. REPLAY (BẬT) →
+        // [VI] mọi nến đều được vào, khớp indicator.
         if (count < 3) return;
 
-        // Count how many of the most recent closed bars are newer than the last one we
-        // already processed (walk from _hdm[1] outward until we hit a known/old bar).
-        // [VI] Đếm xem có bao nhiêu nến đóng gần nhất mới hơn nến đã xử lý cuối cùng
-        // [VI] (đi từ _hdm[1] ra xa cho tới khi gặp nến đã biết/cũ).
         int newBars = 0;
         for (int idx = 1; idx + 2 < count; idx++)
         {
-            var b = _hdm[idx] as HistoryItemBar;
+            var b = f.Hdm[idx] as HistoryItemBar;
             if (b == null) break;
-            if (_lastProcessedBar != DateTime.MinValue && b.TimeLeft <= _lastProcessedBar) break;
+            if (f.LastProcessedBar != DateTime.MinValue && b.TimeLeft <= f.LastProcessedBar) break;
             newBars++;
         }
         if (newBars == 0) return;
 
-        _lastBarTime = DateTime.UtcNow;
-        _lastHdmBarTime = DateTime.UtcNow;
+        _lastBarTime = DateTime.UtcNow;      // global heartbeat (any feed)  // [VI] nhịp tim chung
+        f.LastHdmBarTime = DateTime.UtcNow;  // per-feed staleness            // [VI] nguồn cũ theo feed
 
-        // Replay oldest-first (highest index → 1) so FVG zones build in time order.
-        // Trading rule: LIVE (ReplayMode OFF) → only the newest bar may enter, so a burst
-        // never fires a late entry on a stale bar. REPLAY (ReplayMode ON) → EVERY bar may
-        // enter, so signals on replayed/catch-up bars are not skipped and the bot matches
-        // the indicator, which marks every signal.
-        // [VI] Replay từ cũ đến mới (chỉ số cao → 1) để dựng vùng FVG đúng thứ tự thời gian.
-        // [VI] Luật vào lệnh: THẬT (Replay TẮT) → chỉ nến mới nhất được vào, để nạp dồn không
-        // [VI] bắn lệnh trễ trên nến cũ. REPLAY (Replay BẬT) → MỌI nến đều được vào, để tín
-        // [VI] hiệu trên nến replay/bù không bị bỏ và bot khớp indicator (đánh dấu mọi tín hiệu).
         for (int k = newBars; k >= 1; k--)
         {
-            var bar = _hdm[k] as HistoryItemBar;
+            var bar = f.Hdm[k] as HistoryItemBar;
             if (bar == null) continue;
-            _lastProcessedBar = bar.TimeLeft;
+            f.LastProcessedBar = bar.TimeLeft;
             bool isNewest = (k == 1);
             // Enter on the newest bar (live) or on every bar (replay/backtest).
             // [VI] Vào lệnh ở nến mới nhất (thật) hoặc mọi nến (replay/backtest).
             bool tradeThisBar = ReplayMode || isNewest;
 
-            // Stay quiet here when outside the time filter — ProcessBar prints the single
-            // "Outside of Trading Timefilter" line instead of these per-bar messages.
-            // [VI] Im lặng ở đây khi ngoài bộ lọc giờ — ProcessBar sẽ in dòng "Outside..."
-            // [VI] thay cho các message theo nến này.
             bool barInHours = IsWithinTradingHours(bar.TimeLeft);
             if (isNewest)
             {
                 if (barInHours)
                 {
-                    Log(string.Format("[EN]   [POLL] New bar detected @ {0:HH:mm}", bar.TimeLeft), StrategyLoggingLevel.Info);
-                    Log(string.Format("[VI]   [POLL] Phát hiện nến mới lúc {0:HH:mm}", bar.TimeLeft), StrategyLoggingLevel.Info);
+                    Log(string.Format("[EN]   [POLL {0}] New bar @ {1:HH:mm}", f.Label, bar.TimeLeft), StrategyLoggingLevel.Info);
+                    Log(string.Format("[VI]   [POLL {0}] Nến mới lúc {1:HH:mm}", f.Label, bar.TimeLeft), StrategyLoggingLevel.Info);
                 }
             }
             else if (!ReplayMode && barInHours)
             {
-                // Live catch-up bar: zones only, no entry (its own bar summary is suppressed).
-                // [VI] Nến bù khi chạy thật: chỉ dựng vùng, không vào lệnh (không in tóm tắt nến).
-                Log(string.Format("[EN]   [POLL] Catch-up bar @ {0:HH:mm} — building FVG zones only (no entry).", bar.TimeLeft), StrategyLoggingLevel.Info);
-                Log(string.Format("[VI]   [POLL] Nến bù @ {0:HH:mm} — chỉ dựng vùng FVG (không vào lệnh).", bar.TimeLeft), StrategyLoggingLevel.Info);
+                Log(string.Format("[EN]   [POLL {0}] Catch-up bar @ {1:HH:mm} — zones only (no entry).", f.Label, bar.TimeLeft), StrategyLoggingLevel.Info);
+                Log(string.Format("[VI]   [POLL {0}] Nến bù @ {1:HH:mm} — chỉ dựng vùng (không vào lệnh).", f.Label, bar.TimeLeft), StrategyLoggingLevel.Info);
             }
-            // In replay mode, catch-up bars trade and log their own "Bar # → signal" summary.
-            // [VI] Ở chế độ replay, nến bù được vào lệnh và tự in dòng tóm tắt "Nến # → tín hiệu".
 
-            ProcessBar(k, executeTrades: tradeThisBar);
+            ProcessBar(f, k, executeTrades: tradeThisBar);
         }
     }
 
@@ -988,16 +1025,16 @@ public class OneshotFVGStrategy : Strategy
     //  [VI] hdmIndex : chỉ số _hdm[] của nến coi là "hiện tại" (b0).
     //  [VI] executeTrades : false khi warmup (chỉ dựng vùng), true khi chạy thật.
     // =========================================================================
-    private void ProcessBar(int hdmIndex, bool executeTrades)
+    private void ProcessBar(Feed f, int hdmIndex, bool executeTrades)
     {
         // Safety guard: ensure three bars are available.
         // [VI] Canh an toàn: bảo đảm có sẵn 3 nến.
-        if (_hdm == null || _hdm.Count < hdmIndex + 3) return;
-        var b0 = _hdm[hdmIndex] as HistoryItemBar;       // Most recent completed bar  // [VI] Nến đã đóng gần nhất
-        var b1 = _hdm[hdmIndex + 1] as HistoryItemBar;   // One bar before b0          // [VI] Một nến trước b0
-        var b2 = _hdm[hdmIndex + 2] as HistoryItemBar;   // Two bars before b0         // [VI] Hai nến trước b0
+        if (f.Hdm == null || f.Hdm.Count < hdmIndex + 3) return;
+        var b0 = f.Hdm[hdmIndex] as HistoryItemBar;       // Most recent completed bar  // [VI] Nến đã đóng gần nhất
+        var b1 = f.Hdm[hdmIndex + 1] as HistoryItemBar;   // One bar before b0          // [VI] Một nến trước b0
+        var b2 = f.Hdm[hdmIndex + 2] as HistoryItemBar;   // Two bars before b0         // [VI] Hai nến trước b0
         if (b0 == null || b1 == null || b2 == null) return;
-        _barCount++;
+        f.BarCount++;
 
         // Extract OHLC values from each bar for readability.
         // [VI] Tách các giá OHLC từ mỗi nến cho dễ đọc.
@@ -1007,7 +1044,7 @@ public class OneshotFVGStrategy : Strategy
 
         // Read the EMA value for this bar index. Skip if not yet calculated.
         // [VI] Đọc giá trị EMA cho chỉ số nến này. Bỏ qua nếu chưa tính.
-        double ema = _ema.GetValue(hdmIndex);
+        double ema = f.Ema.GetValue(hdmIndex);
         if (double.IsNaN(ema))
         {
             // [DIAG] EMA not ready yet → the whole bar is skipped silently (no FVG, no
@@ -1023,12 +1060,12 @@ public class OneshotFVGStrategy : Strategy
             }
             return;
         }
-        _lastEmaVal = ema;
+        f.LastEmaVal = ema;
         // Trend is bullish if price closed above the EMA, bearish if below.
         // [VI] Xu hướng tăng nếu giá đóng trên EMA, giảm nếu dưới.
-        _isUptrend = c0 > ema;
+        f.IsUptrend = c0 > ema;
 
-        string trend = _isUptrend ? "UPTREND ▲" : "DOWNTREND ▼";
+        string trend = f.IsUptrend ? "UPTREND ▲" : "DOWNTREND ▼";
 
         // --- FVG Zone Detection ---
         // [VI] --- Phát hiện vùng FVG ---
@@ -1036,15 +1073,15 @@ public class OneshotFVGStrategy : Strategy
         // (the middle candle b1 "jumped" upward, leaving unfilled space).
         // [VI] FVG tăng: có khoảng trống khi đáy b0 cao hơn đỉnh b2
         // [VI] (nến giữa b1 "nhảy" lên, để lại khoảng chưa lấp).
-        if (l0 > h2) { _bullTop.Add(l0); _bullBtm.Add(h2); _bullBar.Add(_barCount); }
+        if (l0 > h2) { f.BullTop.Add(l0); f.BullBtm.Add(h2); f.BullBar.Add(f.BarCount); }
         // Bearish FVG: a gap exists when b0's high is below b2's low
         // (the middle candle b1 "dropped" downward, leaving unfilled space).
         // [VI] FVG giảm: có khoảng trống khi đỉnh b0 thấp hơn đáy b2
         // [VI] (nến giữa b1 "rớt" xuống, để lại khoảng chưa lấp).
-        if (h0 < l2) { _bearTop.Add(l2); _bearBtm.Add(h0); _bearBar.Add(_barCount); }
+        if (h0 < l2) { f.BearTop.Add(l2); f.BearBtm.Add(h0); f.BearBar.Add(f.BarCount); }
         // Remove zones that have exceeded the BarLookback expiry window.
         // [VI] Xóa các vùng đã vượt cửa sổ hết hạn BarLookback.
-        PruneExpiredZones();
+        PruneExpiredZones(f);
 
         // --- Trading-hours log gate ---
         // When the session time filter is ON and this bar is OUTSIDE the chosen window,
@@ -1079,21 +1116,21 @@ public class OneshotFVGStrategy : Strategy
         // [VI] (b1) thường chạm khoảng trống còn b0 là nến đảo chiều.
         bool touchBull = false;
         int touchBullZone = -1; double touchBullTop = double.NaN, touchBullBtm = double.NaN;
-        for (int i = 0; i < _bullTop.Count && !touchBull; i++)
-            if (_barCount > _bullBar[i] && _barCount <= _bullBar[i] + BarLookback)
-                if ((l0 <= _bullTop[i] && h0 >= _bullBtm[i]) ||
-                    (l1 <= _bullTop[i] && h1 >= _bullBtm[i]))
-                { touchBull = true; touchBullZone = _bullBar[i]; touchBullTop = _bullTop[i]; touchBullBtm = _bullBtm[i]; }
+        for (int i = 0; i < f.BullTop.Count && !touchBull; i++)
+            if (f.BarCount > f.BullBar[i] && f.BarCount <= f.BullBar[i] + BarLookback)
+                if ((l0 <= f.BullTop[i] && h0 >= f.BullBtm[i]) ||
+                    (l1 <= f.BullTop[i] && h1 >= f.BullBtm[i]))
+                { touchBull = true; touchBullZone = f.BullBar[i]; touchBullTop = f.BullTop[i]; touchBullBtm = f.BullBtm[i]; }
 
         // Check whether b0 penetrated any active bearish FVG zone.
         // [VI] Kiểm tra b0 có xuyên vào vùng FVG giảm nào đang hoạt động không.
         bool touchBear = false;
         int touchBearZone = -1; double touchBearTop = double.NaN, touchBearBtm = double.NaN;
-        for (int i = 0; i < _bearTop.Count && !touchBear; i++)
-            if (_barCount > _bearBar[i] && _barCount <= _bearBar[i] + BarLookback)
-                if ((h0 >= _bearBtm[i] && l0 <= _bearTop[i]) ||
-                    (h1 >= _bearBtm[i] && l1 <= _bearTop[i]))
-                { touchBear = true; touchBearZone = _bearBar[i]; touchBearTop = _bearTop[i]; touchBearBtm = _bearBtm[i]; }
+        for (int i = 0; i < f.BearTop.Count && !touchBear; i++)
+            if (f.BarCount > f.BearBar[i] && f.BarCount <= f.BearBar[i] + BarLookback)
+                if ((h0 >= f.BearBtm[i] && l0 <= f.BearTop[i]) ||
+                    (h1 >= f.BearBtm[i] && l1 <= f.BearTop[i]))
+                { touchBear = true; touchBearZone = f.BearBar[i]; touchBearTop = f.BearTop[i]; touchBearBtm = f.BearBtm[i]; }
 
         // --- Retrace-into-FVG observation log (early "watch" heads-up) ---
         // When price taps an active FVG in the trend direction, log a heads-up so you
@@ -1109,9 +1146,9 @@ public class OneshotFVGStrategy : Strategy
         {
             // Uptrend + tapped a Bull FVG → get ready to watch for a Long.
             // [VI] Xu hướng tăng + chạm vùng Bull FVG → chuẩn bị canh Long.
-            if (touchBull && _isUptrend && touchBullZone != _lastRetraceBullZone)
+            if (touchBull && f.IsUptrend && touchBullZone != f.LastRetraceBullZone)
             {
-                _lastRetraceBullZone = touchBullZone;
+                f.LastRetraceBullZone = touchBullZone;
                 Log(string.Format("[EN] 👀 [RETRACE → WATCH LONG] Uptrend — price retraced into a Bull FVG [{0:F2} – {1:F2}] @ {2:F2}. Waiting for a bullish reversal candle to confirm a Long.",
                     touchBullBtm, touchBullTop, c0), StrategyLoggingLevel.Info);
                 Log(string.Format("[VI] 👀 [RETRACE → CANH LONG] Xu hướng tăng — giá retrace về vùng Bull FVG [{0:F2} – {1:F2}] @ {2:F2}. Đang chờ nến đảo chiều tăng để xác nhận Long.",
@@ -1119,9 +1156,9 @@ public class OneshotFVGStrategy : Strategy
             }
             // Downtrend + tapped a Bear FVG → get ready to watch for a Short.
             // [VI] Xu hướng giảm + chạm vùng Bear FVG → chuẩn bị canh Short.
-            if (touchBear && !_isUptrend && touchBearZone != _lastRetraceBearZone)
+            if (touchBear && !f.IsUptrend && touchBearZone != f.LastRetraceBearZone)
             {
-                _lastRetraceBearZone = touchBearZone;
+                f.LastRetraceBearZone = touchBearZone;
                 Log(string.Format("[EN] 👀 [RETRACE → WATCH SHORT] Downtrend — price retraced into a Bear FVG [{0:F2} – {1:F2}] @ {2:F2}. Waiting for a bearish reversal candle to confirm a Short.",
                     touchBearBtm, touchBearTop, c0), StrategyLoggingLevel.Info);
                 Log(string.Format("[VI] 👀 [RETRACE → CANH SHORT] Xu hướng giảm — giá retrace về vùng Bear FVG [{0:F2} – {1:F2}] @ {2:F2}. Đang chờ nến đảo chiều giảm để xác nhận Short.",
@@ -1193,10 +1230,10 @@ public class OneshotFVGStrategy : Strategy
         // [VI] Ghi tóm tắt nến ra bảng output của chiến lược khi chạy thật.
         if (executeTrades)
         {
-            Log(string.Format("[EN] ━━ Bar #{0}  {1}  EMA:{2:F2}  Close:{3:F2}  Bull:{4} Bear:{5}  → {6}",
-                _barCount, trend, ema, c0, _bullTop.Count, _bearTop.Count, sigTxt), StrategyLoggingLevel.Info);
-            Log(string.Format("[VI] ━━ Nến #{0}  {1}  EMA:{2:F2}  Đóng:{3:F2}  Tăng:{4} Giảm:{5}  → {6}",
-                _barCount, trend, ema, c0, _bullTop.Count, _bearTop.Count, sigTxt), StrategyLoggingLevel.Info);
+            Log(string.Format("[EN] ━━ [{0}] Bar #{1}  {2}  EMA:{3:F2}  Close:{4:F2}  Bull:{5} Bear:{6}  → {7}",
+                f.Label, f.BarCount, trend, ema, c0, f.BullTop.Count, f.BearTop.Count, sigTxt), StrategyLoggingLevel.Info);
+            Log(string.Format("[VI] ━━ [{0}] Nến #{1}  {2}  EMA:{3:F2}  Đóng:{4:F2}  Tăng:{5} Giảm:{6}  → {7}",
+                f.Label, f.BarCount, trend, ema, c0, f.BullTop.Count, f.BearTop.Count, sigTxt), StrategyLoggingLevel.Info);
         }
 
         // Stop here during warmup (zone building only).
@@ -1245,62 +1282,34 @@ public class OneshotFVGStrategy : Strategy
         // [VI] Bỏ qua nếu ngoài khung phiên giao dịch đã cấu hình.
         if (!IsWithinTradingHours(b0.TimeLeft)) return;
 
-        // --- Reverse Trade Logic ---
-        // If we are already in a trade and a new opposite signal appears, flatten first
-        // and then re-enter in the new direction.
-        // [VI] --- Logic đảo lệnh ---
-        // [VI] Nếu đang có lệnh và xuất hiện tín hiệu ngược mới, đóng vị thế trước
-        // [VI] rồi vào lại theo hướng mới.
-        if (_inTrade && !_pendingFill && !_pendingReverse && AllowReverse)
-        {
-            bool reverseToLong = goLong && !_isLong;
-            bool reverseToShort = goShort && _isLong;
-
-            if (reverseToLong || reverseToShort)
-            {
-                if (!IsWithinRateLimit("REVERSE")) return;
-                double newSLDist = reverseToLong ? c0 - rawSL : rawSL - c0;
-                double newTP = reverseToLong ? c0 + newSLDist * tpMultiplierInternal : c0 - newSLDist * tpMultiplierInternal;
-                int newContracts = GetContractCount(newSLDist);
-
-                // Store the reverse trade parameters so OnPositionRemoved can fire the new entry.
-                // [VI] Lưu tham số lệnh đảo để OnPositionRemoved kích hoạt lệnh mới.
-                _pendingReverse = true;
-                _reverseIsLong = reverseToLong;
-                _reverseSLPrice = rawSL;
-                _reverseTPPrice = newTP;
-                _reverseSLDist = newSLDist;
-                _reverseContracts = newContracts;
-
-                FlattenPosition("Reverse signal");
-                return;
-            }
-        }
-
         // --- New Entry Guard ---
-        // Confirm we are truly flat on the platform before placing a new entry.
+        // Only one position at a time across ALL timeframes: if a trade is already
+        // open (or pending), every new signal — from this or any other timeframe — is
+        // ignored until the position closes. (Reversing on opposite signals was removed.)
         // [VI] --- Chốt chặn trước khi vào lệnh mới ---
-        // [VI] Xác nhận thực sự không còn vị thế nào trên sàn trước khi vào lệnh mới.
+        // [VI] Chỉ một vị thế tại một thời điểm trên MỌI timeframe: nếu đang có lệnh (hoặc
+        // [VI] đang chờ), mọi tín hiệu mới — từ timeframe này hay khác — đều bị bỏ qua cho
+        // [VI] tới khi lệnh đóng. (Đã gỡ bỏ cơ chế đảo chiều.)
         bool flat2 = !Core.Instance.Positions.Any(p => IsOurs(p.Symbol) && IsOurs(p.Account));
         if (!flat2 || _inTrade || _pendingFill || _pendingReverse || _flattening) return;
 
-        // --- Fire Entry ---
-        // [VI] --- Bắn lệnh vào ---
+        // --- Fire Entry (uses THIS feed's sizing config) ---
+        // [VI] --- Bắn lệnh vào (dùng cấu hình sizing của CHÍNH feed này) ---
         if (goLong)
         {
             if (!IsWithinRateLimit("LONG")) return;
-            int qty = GetContractCount(c0 - rawSL);
-            Log(string.Format("[EN]   >> [SIGNAL LONG] Market entry sent first. Qty: {0} | Saved candle RawSL: {1:F2}", qty, rawSL), StrategyLoggingLevel.Trading);
-            Log(string.Format("[VI]   >> [TÍN HIỆU LONG] Đã gửi lệnh Market trước. Qty: {0} | Lưu RawSL nến: {1:F2}", qty, rawSL), StrategyLoggingLevel.Trading);
-            PlaceEntry(Side.Buy, rawSL, qty);
+            int qty = GetContractCount(f, c0 - rawSL);
+            Log(string.Format("[EN]   >> [SIGNAL LONG {0}] Market entry sent first. Qty: {1} | Saved candle RawSL: {2:F2}", f.Label, qty, rawSL), StrategyLoggingLevel.Trading);
+            Log(string.Format("[VI]   >> [TÍN HIỆU LONG {0}] Đã gửi lệnh Market trước. Qty: {1} | Lưu RawSL nến: {2:F2}", f.Label, qty, rawSL), StrategyLoggingLevel.Trading);
+            PlaceEntry(f, Side.Buy, rawSL, qty);
         }
         else if (goShort)
         {
             if (!IsWithinRateLimit("SHORT")) return;
-            int qty = GetContractCount(rawSL - c0);
-            Log(string.Format("[EN]   >> [SIGNAL SHORT] Market entry sent first. Qty: {0} | Saved candle RawSL: {1:F2}", qty, rawSL), StrategyLoggingLevel.Trading);
-            Log(string.Format("[VI]   >> [TÍN HIỆU SHORT] Đã gửi lệnh Market trước. Qty: {0} | Lưu RawSL nến: {1:F2}", qty, rawSL), StrategyLoggingLevel.Trading);
-            PlaceEntry(Side.Sell, rawSL, qty);
+            int qty = GetContractCount(f, rawSL - c0);
+            Log(string.Format("[EN]   >> [SIGNAL SHORT {0}] Market entry sent first. Qty: {1} | Saved candle RawSL: {2:F2}", f.Label, qty, rawSL), StrategyLoggingLevel.Trading);
+            Log(string.Format("[VI]   >> [TÍN HIỆU SHORT {0}] Đã gửi lệnh Market trước. Qty: {1} | Lưu RawSL nến: {2:F2}", f.Label, qty, rawSL), StrategyLoggingLevel.Trading);
+            PlaceEntry(f, Side.Sell, rawSL, qty);
         }
     }
 
@@ -1313,13 +1322,13 @@ public class OneshotFVGStrategy : Strategy
     //  [VI] Xóa các vùng FVG khỏi danh sách khi đã quá BarLookback nến.
     //  [VI] Duyệt ngược danh sách để việc xóa theo chỉ số được an toàn.
     // =========================================================================
-    private void PruneExpiredZones()
+    private void PruneExpiredZones(Feed f)
     {
-        int cutoff = _barCount - BarLookback - 1;
-        for (int i = _bullBar.Count - 1; i >= 0; i--)
-            if (_bullBar[i] < cutoff) { _bullTop.RemoveAt(i); _bullBtm.RemoveAt(i); _bullBar.RemoveAt(i); }
-        for (int i = _bearBar.Count - 1; i >= 0; i--)
-            if (_bearBar[i] < cutoff) { _bearTop.RemoveAt(i); _bearBtm.RemoveAt(i); _bearBar.RemoveAt(i); }
+        int cutoff = f.BarCount - BarLookback - 1;
+        for (int i = f.BullBar.Count - 1; i >= 0; i--)
+            if (f.BullBar[i] < cutoff) { f.BullTop.RemoveAt(i); f.BullBtm.RemoveAt(i); f.BullBar.RemoveAt(i); }
+        for (int i = f.BearBar.Count - 1; i >= 0; i--)
+            if (f.BearBar[i] < cutoff) { f.BearTop.RemoveAt(i); f.BearBtm.RemoveAt(i); f.BearBar.RemoveAt(i); }
     }
 
     // =========================================================================
@@ -1354,10 +1363,11 @@ public class OneshotFVGStrategy : Strategy
     //  [VI] SL/TP KHÔNG đặt ở đây — chúng được đặt sau khi xác nhận khớp trong
     //       OnDebounceFlush() → CalculateAndPlaceSLTP().
     // =========================================================================
-    private void PlaceEntry(Side side, double rawSLPrice, int qty)
+    private void PlaceEntry(Feed f, Side side, double rawSLPrice, int qty)
     {
         // Set direction and save the candle-derived SL for use after fill.
         // [VI] Đặt hướng và lưu SL lấy từ nến để dùng sau khi khớp.
+        _activeFeed = f;          // remember which timeframe owns this trade (for sizing/risk-trim)  // [VI] nhớ timeframe sở hữu lệnh
         _isLong = side == Side.Buy;
         _signalRawSLPrice = rawSLPrice;
         _slTPSet = false;
@@ -1390,6 +1400,7 @@ public class OneshotFVGStrategy : Strategy
             Log("[VI]   Lệnh vào THẤT BẠI: " + result.Message, StrategyLoggingLevel.Error);
             _pendingReverse = false;
             _inTrade = false;
+            _activeFeed = null;
             lock (_lock)
             {
                 _debounceTimer?.Dispose();
@@ -1591,9 +1602,9 @@ public class OneshotFVGStrategy : Strategy
         // [VI] RiskAmountUSD. Tính lại size theo SL thật, và nếu đang giữ quá nhiều
         // [VI] contract thì đóng bớt phần thừa trước khi đặt SL/TP, để rủi ro thực
         // [VI] tế không bao giờ vượt mức đã cài.
-        if (UseRiskAmount)
+        if (_activeFeed != null && _activeFeed.UseRiskAmount)
         {
-            int targetQty = GetContractCount(calculatedDist);   // correct size for the REAL stop distance  // [VI] size đúng cho khoảng cách SL THẬT
+            int targetQty = GetContractCount(_activeFeed, calculatedDist);   // correct size for the REAL stop distance  // [VI] size đúng cho khoảng cách SL THẬT
             int filledQty = (int)qty;
 
             if (filledQty > targetQty)
@@ -1623,9 +1634,9 @@ public class OneshotFVGStrategy : Strategy
                     // Trim sent: SL/TP below will cover only the remaining target size.
                     // [VI] Đã gửi lệnh cắt: SL/TP bên dưới chỉ bảo vệ phần size còn lại.
                     Log(string.Format("[EN]   [RISK TRIM] Real SL {0:F1}pts → correct size {1} (filled {2}). Closing {3} contract(s) to keep risk ≤ ${4:F0}.",
-                        calculatedDist, targetQty, filledQty, trimQty, RiskAmountUSD), StrategyLoggingLevel.Trading);
+                        calculatedDist, targetQty, filledQty, trimQty, _activeFeed.RiskAmountUSD), StrategyLoggingLevel.Trading);
                     Log(string.Format("[VI]   [RISK TRIM] SL thật {0:F1}pts → size đúng {1} (đã khớp {2}). Đóng bớt {3} contract để giữ rủi ro ≤ ${4:F0}.",
-                        calculatedDist, targetQty, filledQty, trimQty, RiskAmountUSD), StrategyLoggingLevel.Trading);
+                        calculatedDist, targetQty, filledQty, trimQty, _activeFeed.RiskAmountUSD), StrategyLoggingLevel.Trading);
                     qty = targetQty;          // SL/TP protect only the kept contracts  // [VI] SL/TP chỉ bảo vệ số contract còn giữ
                     _fillQty = targetQty;     // keep status display in sync             // [VI] đồng bộ hiển thị trạng thái
                 }
@@ -1993,33 +2004,16 @@ public class OneshotFVGStrategy : Strategy
             return;
         }
 
-        // Case 2: Normal trade exit (SL, TP, or manual).
-        // [VI] Trường hợp 2: Thoát lệnh bình thường (SL, TP, hoặc đóng tay).
+        // Case 2: Normal trade exit (SL, TP, or manual). Reversing was removed —
+        // after any exit the bot simply returns to flat and waits for the next signal
+        // from any timeframe.
+        // [VI] Trường hợp 2: Thoát lệnh bình thường (SL, TP, hoặc đóng tay). Đã gỡ đảo
+        // [VI] chiều — sau khi thoát, bot về flat và chờ tín hiệu kế tiếp từ mọi timeframe.
         if (_inTrade && !_pendingReverse)
         {
             CancelOrphanOrders();
             ResetTradeState();
             return;
-        }
-
-        // Case 3: The flatten was triggered to execute a reverse trade.
-        // [VI] Trường hợp 3: Flatten được kích hoạt để thực hiện lệnh đảo chiều.
-        if (_pendingReverse)
-        {
-            CancelOrphanOrders();
-            // Capture reverse parameters before resetting state.
-            // [VI] Lưu lại tham số đảo chiều trước khi reset trạng thái.
-            bool flipIsLong = _reverseIsLong;
-            double flipSL = _reverseSLPrice;
-            double flipTP = _reverseTPPrice;
-            double flipDist = _reverseSLDist;
-            int flipQty = _reverseContracts;
-            _pendingReverse = false;
-            ResetTradeState();
-
-            // Fire the reverse entry now that we are flat.
-            // [VI] Bắn lệnh đảo chiều giờ đã không còn vị thế.
-            PlaceEntry(flipIsLong ? Side.Buy : Side.Sell, flipSL, flipQty);
         }
     }
 
@@ -2384,38 +2378,42 @@ public class OneshotFVGStrategy : Strategy
         bool trailWasSubscribed = _trailSubscribed;
         if (trailWasSubscribed) UnsubscribeTrail();
 
-        // Dispose the stale feed and request a fresh one from the live symbol.
-        // [VI] Hủy nguồn cũ và yêu cầu nguồn mới từ symbol đang sống.
-        try { _hdm?.Dispose(); } catch { }
-
-        _hdm = CurrentSymbol.GetHistory(CurrentPeriod, HistoryType.Last, Math.Max(500, EmaPeriod * 6));
-        _ema = Core.Indicators.BuiltIn.EMA(EmaPeriod, PriceType.Close);
-        _hdm.AddIndicator(_ema);
+        // Dispose and recreate EVERY timeframe feed on the freshly resolved symbol.
+        // Reset each feed's warmup so it re-populates its zone lists. No trading
+        // happens until warmup completes again on the correct instrument.
+        // [VI] Hủy và tạo lại MỌI feed timeframe trên symbol vừa tìm lại. Reset warmup
+        // [VI] từng feed để dựng lại danh sách vùng. Không giao dịch cho tới khi warmup
+        // [VI] xong trên đúng instrument.
+        foreach (var f in _feeds)
+        {
+            try { f.Hdm?.Dispose(); } catch { }
+            OpenFeed(f);
+            f.WarmedUp = false;
+            f.WarmupAttempted = false;
+            f.LastProcessedBar = DateTime.MinValue;
+            f.LastHdmBarTime = DateTime.UtcNow;
+        }
 
         if (trailWasSubscribed) SubscribeTrail();
 
-        // Reset warmup flags so the new feed re-populates the zone lists. No
-        // trading happens until warmup completes on the correct instrument.
-        // [VI] Reset cờ warmup để nguồn mới dựng lại danh sách vùng. Không giao
-        // [VI] dịch cho tới khi warmup xong trên đúng instrument.
-        _warmedUp = false;
-        _warmupAttempted = false;
-        _lastProcessedBar = DateTime.MinValue;
-        _lastHdmBarTime = DateTime.UtcNow;
-        Log(string.Format("[EN] [WATCHDOG] ✔ Feed rebuilt on live connection — symbol '{0}'.", CurrentSymbol.Name), StrategyLoggingLevel.Info);
-        Log(string.Format("[VI] [WATCHDOG] ✔ Đã dựng lại nguồn trên kết nối sống — symbol '{0}'.", CurrentSymbol.Name), StrategyLoggingLevel.Info);
+        Log(string.Format("[EN] [WATCHDOG] ✔ Rebuilt {0} feed(s) on live connection — symbol '{1}'.", _feeds.Count, CurrentSymbol.Name), StrategyLoggingLevel.Info);
+        Log(string.Format("[VI] [WATCHDOG] ✔ Đã dựng lại {0} feed trên kết nối sống — symbol '{1}'.", _feeds.Count, CurrentSymbol.Name), StrategyLoggingLevel.Info);
     }
 
     private void OnWatchdog()
     {
-        // During warmup, just report how many bars have loaded so far.
-        // [VI] Khi warmup, chỉ báo đã nạp được bao nhiêu nến.
-        if (!_warmedUp)
+        // During warmup (any feed still warming), report each feed's progress.
+        // [VI] Khi còn warmup (feed nào đó chưa xong), báo tiến độ từng feed.
+        if (_feeds.Any(f => !f.WarmedUp))
         {
-            int currentCount = _hdm?.Count ?? 0;
-            int requiredCount = EmaPeriod + 5;
-            Log(string.Format("[EN] ♥ WATCHDOG – Waiting for session sync: {0}/{1} bars.", currentCount, requiredCount), StrategyLoggingLevel.Info);
-            Log(string.Format("[VI] ♥ WATCHDOG – Bot đang đợi đồng bộ phiên: {0}/{1} nến.", currentCount, requiredCount), StrategyLoggingLevel.Info);
+            var sb = new System.Text.StringBuilder();
+            foreach (var f in _feeds)
+            {
+                if (sb.Length > 0) sb.Append("  ");
+                sb.AppendFormat("{0}:{1}/{2}{3}", f.Label, f.Hdm?.Count ?? 0, f.EmaPeriod + 5, f.WarmedUp ? "✓" : "");
+            }
+            Log("[EN] ♥ WATCHDOG – Warmup: " + sb, StrategyLoggingLevel.Info);
+            Log("[VI] ♥ WATCHDOG – Đang warmup: " + sb, StrategyLoggingLevel.Info);
             return;
         }
 
@@ -2443,17 +2441,22 @@ public class OneshotFVGStrategy : Strategy
         }
 
         // --- SLOW PATH ---
-        // Connection looks fine but the feed has been silent for too long
-        // (e.g., a data glitch). Rebuild after FeedStaleSec as a backstop.
+        // Connection looks fine but a feed has been silent for too long (data glitch).
+        // The stale threshold scales per timeframe — a slow TF (e.g. HOUR1) naturally
+        // has long gaps between bars, so use max(FeedStaleSec, 4 × bar duration) to
+        // avoid false rebuilds on higher timeframes.
         // [VI] --- ĐƯỜNG CHẬM ---
-        // [VI] Kết nối vẫn ổn nhưng nguồn im lặng quá lâu (vd lỗi data). Dựng lại
-        // [VI] sau FeedStaleSec như một lớp dự phòng.
-        if (_lastHdmBarTime != DateTime.MinValue)
+        // [VI] Kết nối ổn nhưng một feed im quá lâu (lỗi data). Ngưỡng cũ co giãn theo
+        // [VI] timeframe — TF lớn (vd HOUR1) vốn cách nhau lâu, nên dùng max(FeedStaleSec,
+        // [VI] 4 × thời lượng nến) để tránh dựng lại nhầm trên khung lớn.
+        foreach (var f in _feeds)
         {
-            double staleSec = (DateTime.UtcNow - _lastHdmBarTime).TotalSeconds;
-            if (staleSec > FeedStaleSec)
+            if (f.LastHdmBarTime == DateTime.MinValue) continue;
+            double staleSec = (DateTime.UtcNow - f.LastHdmBarTime).TotalSeconds;
+            double threshold = Math.Max(FeedStaleSec, 4.0 * PeriodSeconds(f.Period));
+            if (staleSec > threshold)
             {
-                RebuildFeed(string.Format("no new bar for {0:F0}s", staleSec));
+                RebuildFeed(string.Format("{0} feed: no new bar for {1:F0}s", f.Label, staleSec));
                 return;
             }
         }
@@ -2464,16 +2467,41 @@ public class OneshotFVGStrategy : Strategy
         DateTime cutoff = DateTime.UtcNow.AddSeconds(-60);
         while (_tradeTimestamps.Count > 0 && _tradeTimestamps.Peek() < cutoff) _tradeTimestamps.Dequeue();
 
-        Log(string.Format("[EN] ♥ ALIVE — Last bar {0:F1}s ago | EMA:{1:F2} | {2} | Trades/min:{3}/{4}",
-            secondsSinceBar < 0 ? 0 : secondsSinceBar,
-            double.IsNaN(_lastEmaVal) ? 0 : _lastEmaVal,
-            _inTrade ? "IN TRADE" : "Watching...",
+        var ema = new System.Text.StringBuilder();
+        foreach (var f in _feeds)
+        {
+            if (ema.Length > 0) ema.Append(' ');
+            ema.AppendFormat("{0}:{1:F1}", f.Label, double.IsNaN(f.LastEmaVal) ? 0 : f.LastEmaVal);
+        }
+
+        Log(string.Format("[EN] ♥ ALIVE — Last bar {0:F1}s ago | EMA {1} | {2} | Trades/min:{3}/{4}",
+            secondsSinceBar < 0 ? 0 : secondsSinceBar, ema,
+            _inTrade ? "IN TRADE (" + (_activeFeed != null ? _activeFeed.Label : "?") + ")" : "Watching...",
             _tradeTimestamps.Count, MaxTradesPerMinute), StrategyLoggingLevel.Info);
-        Log(string.Format("[VI] ♥ HOẠT ĐỘNG — Nến cuối {0:F1}s trước | EMA:{1:F2} | {2} | Lệnh/phút:{3}/{4}",
-            secondsSinceBar < 0 ? 0 : secondsSinceBar,
-            double.IsNaN(_lastEmaVal) ? 0 : _lastEmaVal,
-            _inTrade ? "ĐANG CÓ LỆNH" : "Đang theo dõi...",
+        Log(string.Format("[VI] ♥ HOẠT ĐỘNG — Nến cuối {0:F1}s trước | EMA {1} | {2} | Lệnh/phút:{3}/{4}",
+            secondsSinceBar < 0 ? 0 : secondsSinceBar, ema,
+            _inTrade ? "ĐANG CÓ LỆNH (" + (_activeFeed != null ? _activeFeed.Label : "?") + ")" : "Đang theo dõi...",
             _tradeTimestamps.Count, MaxTradesPerMinute), StrategyLoggingLevel.Info);
+    }
+
+    // Approximate duration of one bar of this period, in seconds (for stale-feed scaling).
+    // [VI] Thời lượng xấp xỉ của một nến theo period, tính bằng giây (để co giãn ngưỡng nguồn cũ).
+    private static double PeriodSeconds(Period p)
+    {
+        double unit;
+        switch (p.BasePeriod)
+        {
+            case BasePeriod.Tick:   unit = 0;        break;
+            case BasePeriod.Second: unit = 1;        break;
+            case BasePeriod.Minute: unit = 60;       break;
+            case BasePeriod.Hour:   unit = 3600;     break;
+            case BasePeriod.Day:    unit = 86400;    break;
+            case BasePeriod.Week:   unit = 604800;   break;
+            case BasePeriod.Month:  unit = 2629800;  break;
+            case BasePeriod.Year:   unit = 31557600; break;
+            default:                unit = 60;       break;
+        }
+        return unit * Math.Max(1, p.PeriodMultiplier);
     }
 
     // =========================================================================
@@ -2553,7 +2581,7 @@ public class OneshotFVGStrategy : Strategy
         _inTrade = false; _isLong = false; _flattening = false;
         _entryPrice = 0; _slPrice = 0; _tpPrice = 0; _slDist = 0; _fillQty = 0;
         _slTPSet = false; _activeSLId = null; _activeTPId = null; _pendingReverse = false;
-        _signalRawSLPrice = double.NaN; _trailMoveCount = 0;
+        _signalRawSLPrice = double.NaN; _trailMoveCount = 0; _activeFeed = null;
         // Clear realized-P/L accumulators so the next trade starts fresh.
         // [VI] Xóa bộ cộng dồn Lãi/Lỗ để lệnh kế tiếp bắt đầu từ 0.
         _tradeRealizedNet = 0.0; _tradeRealizedGross = 0.0; _tradeExitPrice = 0.0; _tradeClosingSeen = false;
@@ -2585,11 +2613,11 @@ public class OneshotFVGStrategy : Strategy
     //        [VI] Kết quả luôn làm tròn XUỐNG (không bao giờ làm tròn lên), tối thiểu 1.
     //   [VI] 2. Mặc định → trả về giá trị NumContracts cố định.
     // =========================================================================
-    private int GetContractCount(double slDist)
+    private int GetContractCount(Feed f, double slDist)
     {
         // --- Mode 1: Risk-Amount sizing (auto-detect contracts for ANY instrument) ---
         // [VI] --- Chế độ 1: Tính size theo $ rủi ro (tự nhận diện contract cho MỌI công cụ) ---
-        if (UseRiskAmount)
+        if (f.UseRiskAmount)
         {
             // Guard against zero or invalid SL distance.
             // [VI] Canh chống khoảng cách SL bằng 0 hoặc không hợp lệ.
@@ -2638,13 +2666,13 @@ public class OneshotFVGStrategy : Strategy
 
             // Round DOWN so realised risk never exceeds the configured amount.
             // [VI] Làm tròn XUỐNG để rủi ro thực tế không bao giờ vượt mức đã cài.
-            int contracts = (int)Math.Floor(RiskAmountUSD / dollarRiskPerContract);
+            int contracts = (int)Math.Floor(f.RiskAmountUSD / dollarRiskPerContract);
             return Math.Max(1, contracts);                   // always trade at least 1  // [VI] luôn giao dịch tối thiểu 1
         }
 
         // --- Mode 2: Fixed contracts ---
         // [VI] --- Chế độ 2: Số contract cố định ---
-        return NumContracts;
+        return f.NumContracts;
     }
 
     // =========================================================================
@@ -2719,21 +2747,33 @@ public class OneshotFVGStrategy : Strategy
     {
         double secondsSinceBar = _lastBarTime == DateTime.MinValue ? -1 : (DateTime.UtcNow - _lastBarTime).TotalSeconds;
 
-        // Build a human-readable label for the active sizing mode.
-        // [VI] Tạo nhãn dễ đọc cho chế độ tính size đang dùng.
-        string sizingMode;
-        if (UseRiskAmount)
-            sizingMode = string.Format("Risk ${0:F0} / trade (auto-contracts)", RiskAmountUSD);
-        else
-            sizingMode = string.Format("Fixed {0} contracts", NumContracts);
+        bool allWarmed = _feeds.Count > 0 && _feeds.All(f => f.WarmedUp);
+
+        // Timeframes line: each feed's label + warmup state + trend.
+        // [VI] Dòng timeframe: nhãn từng feed + trạng thái warmup + xu hướng.
+        var tfs = new System.Text.StringBuilder();
+        foreach (var f in _feeds)
+        {
+            if (tfs.Length > 0) tfs.Append("  ");
+            string tr = f.WarmedUp ? (f.IsUptrend ? "▲" : "▼") : "⌛";
+            tfs.AppendFormat("{0}{1}", f.Label, tr);
+        }
+
+        // Active-trade sizing label (the entering feed's config), or "—" when flat.
+        // [VI] Nhãn sizing của lệnh đang chạy (cấu hình feed đã vào), hoặc "—" khi flat.
+        string sizingMode = "—";
+        if (_inTrade && _activeFeed != null)
+            sizingMode = _activeFeed.UseRiskAmount
+                ? string.Format("{0}: Risk ${1:F0} / trade", _activeFeed.Label, _activeFeed.RiskAmountUSD)
+                : string.Format("{0}: {1} contracts", _activeFeed.Label, _activeFeed.NumContracts);
 
         return new List<StrategyMetric>
         {
-            new StrategyMetric { Name = "Bot Status",          FormattedValue = _inTrade ? "IN TRADE" : (_warmedUp ? "✅ RUNNING" : "⌛ LOADING HISTORY") },
-            new StrategyMetric { Name = "Sizing Mode",         FormattedValue = sizingMode },
-            new StrategyMetric { Name = "Trend",               FormattedValue = _warmedUp ? (_isUptrend ? "UPTREND ▲" : "DOWNTREND ▼") : "—" },
+            new StrategyMetric { Name = "Bot Status",          FormattedValue = _inTrade ? "IN TRADE" : (allWarmed ? "✅ RUNNING" : "⌛ LOADING HISTORY") },
+            new StrategyMetric { Name = "Timeframes",          FormattedValue = tfs.Length > 0 ? tfs.ToString() : "—" },
+            new StrategyMetric { Name = "Active Sizing",       FormattedValue = sizingMode },
             new StrategyMetric { Name = "Last Signal",         FormattedValue = _lastSignal },
-            new StrategyMetric { Name = "Position",            FormattedValue = _inTrade ? string.Format("{0} {1}x @ {2:F2}", _isLong ? "Long" : "Short", _fillQty, _entryPrice) : "Flat" },
+            new StrategyMetric { Name = "Position",            FormattedValue = _inTrade ? string.Format("{0} {1} {2}x @ {3:F2}", _activeFeed != null ? _activeFeed.Label : "?", _isLong ? "Long" : "Short", _fillQty, _entryPrice) : "Flat" },
             new StrategyMetric { Name = "SL / TP Status",      FormattedValue = _slTPSet ? string.Format("SL:{0:F2} | TP:{1:F2}", _slPrice, _tpPrice) : "—" },
             new StrategyMetric { Name = "Feed Health",         FormattedValue = secondsSinceBar < 0 ? "No bar received yet" : string.Format("Last bar {0:F1}s ago", secondsSinceBar) },
         };
@@ -2777,9 +2817,14 @@ public class OneshotFVGStrategy : Strategy
         // Dispose the debounce timer if it is still pending.
         // [VI] Giải phóng timer debounce nếu còn đang chờ.
         lock (_lock) { _debounceTimer?.Dispose(); _debounceTimer = null; }
-        // Dispose the historical data feed.
-        // [VI] Giải phóng nguồn dữ liệu lịch sử.
-        if (_hdm != null) { try { _hdm.Dispose(); } catch { } _hdm = null; }
-        _ema = null;
+        // Dispose every timeframe feed's historical data.
+        // [VI] Giải phóng dữ liệu lịch sử của mọi feed timeframe.
+        foreach (var f in _feeds)
+        {
+            if (f.Hdm != null) { try { f.Hdm.Dispose(); } catch { } f.Hdm = null; }
+            f.Ema = null;
+        }
+        _feeds.Clear();
+        _activeFeed = null;
     }
 }
