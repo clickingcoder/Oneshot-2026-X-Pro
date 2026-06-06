@@ -718,8 +718,8 @@ public class OneshotFVGStrategy : Strategy
     // =========================================================================
     public OneshotFVGStrategy() : base()
     {
-        this.Name = "Oneshot 2026 V2.3 Tele";
-        this.Description = "ICT FVG + EMA | Oneshot 2026 V2.3 Tele (Telegram alerts + reconnect-recovery)";
+        this.Name = "Oneshot 2026 X-Pro";
+        this.Description = "ICT FVG + EMA | Oneshot 2026 X-Pro (Telegram alerts + reconnect-recovery)";
     }
 
     // =========================================================================
